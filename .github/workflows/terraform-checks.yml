@@ -13,6 +13,8 @@ on:
 jobs:
   validate-workspace-changes:
     runs-on: ubuntu-latest
+    outputs:      
+      workspace_path: ${{ steps.check-workspaces.outputs.workspace_path }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -35,13 +37,14 @@ jobs:
       - name: Extract unique workspaces
         id: check-workspaces
         run: |
-          WORKSPACES=$(cat changed_files.txt | awk -F'/' '{print $1 "/" $2 "/" $3}' | sort -u)
+          WORKSPACES=$(cat changed_files.txt | awk -F'/' '{print $1 "/" $2 }' | sort -u)
           echo "Modified workspaces:"
           echo "$WORKSPACES"
 
           UNIQUE_COUNT=$(echo "$WORKSPACES" | wc -l)
 
           if [[ "$UNIQUE_COUNT" -eq 1 ]]; then
+            echo "✅ There is a single workspace modified $WORKSPACES"
             WORKSPACE_PATH=$(echo "$WORKSPACES")
             echo "workspace_path=$WORKSPACE_PATH" >> $GITHUB_ENV
             echo "::set-output name=workspace_path::$WORKSPACE_PATH"
@@ -60,19 +63,6 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-
-      - name: Download workspace path
-        uses: actions/download-artifact@v4
-        with:
-          name: workspace-path
-
-      - name: Read workspace path
-        id: read-path
-        run: |
-          echo "*************"
-          WORKSPACE_PATH=$(cat workspace_path.txt)
-          echo "Workspace Path: $WORKSPACE_PATH"
-          echo "workspace_path=$WORKSPACE_PATH" >> $GITHUB_ENV
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -97,11 +87,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install tfsec (Terraform security scanner)
-        run: |
-          curl -s https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install.sh | bash
+      - name: Install tfsec        
+        run: |          
+          wget -q -O tfsec https://github.com/aquasecurity/tfsec/releases/latest/download/tfsec-linux-amd64
+          chmod +x tfsec          
+          sudo mv tfsec /usr/local/bin/
 
-      - name: Run SAST Security Scan (tfsec)
+      - name: Run tfsec
         run: |
           echo "🚀 Running tfsec in ${{ needs.validate-workspace-changes.outputs.workspace_path }}..."
           tfsec ${{ needs.validate-workspace-changes.outputs.workspace_path }}
@@ -154,15 +146,16 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Checkmarx AST Github Action
-        uses: checkmarx/ast-github-action@v2
+        uses: checkmarx/ast-github-action@main
         with:
             project_name: ${{ github.repository }}
             cx_tenant: ${{ secrets.CXTENANT }}
             base_uri: ${{ secrets.CHECKMARX_URL }}
             cx_client_id: ${{ secrets.CXCLIENTID }}
             cx_client_secret: ${{ secrets.CHECKMARX_CLIENT_SECRET }}
-            additional_params: --scan-path="${{ needs.validate-workspace-changes.outputs.workspace_path }}" --report-format sarif --output-path results.sarif --project-groups DHCS-CBSB-AWS
-            scan_types: sast
+            #source_dir: ${{ needs.validate-workspace-changes.outputs.workspace_path }} 
             branch: ${{ github.ref }}
-            generate_sarif_report: true
+            github_token: ${{github.token }}
+            additional_params: "--project-groups DHCS-CBSB-AWS"
+
         

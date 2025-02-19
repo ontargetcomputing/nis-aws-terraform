@@ -14,9 +14,11 @@ on:
 
 
 # This is necessary for GitHub to request the OIDC token
+# aaaaCxIsdsdsdsgnore - Start
 permissions:
   id-token: write  # Required for OIDC
   contents: write
+# aaaaaCxssdsdIgnore - End
 
 jobs:
   terraformer_import:
@@ -29,7 +31,7 @@ jobs:
 
       - name: Configure AWS OIDC
         id: aws-oidc
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v4 
         with:
           role-to-assume: "arn:aws:iam::582983609964:role/github-actions-oidc-role"
           aws-region: us-west-2
