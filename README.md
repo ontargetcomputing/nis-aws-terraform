@@ -1,4 +1,4 @@
-# NIS-AWS-Accounts
+# nis-aws-terraform
 
 ## Overview
 
