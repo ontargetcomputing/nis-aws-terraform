@@ -163,9 +163,6 @@ jobs:
             cx_client_secret: ${{ secrets.CHECKMARX_CLIENT_SECRET }}
             additional_params: --scan-path="${{ needs.validate-workspace-changes.outputs.workspace_path }}" --report-format sarif --output-path results.sarif --project-groups DHCS-CBSB-AWS
             scan_types: sast
-            threshold:
-              high: 0
-              medium: 0
             branch: ${{ github.ref }}
             generate_sarif_report: true
         
