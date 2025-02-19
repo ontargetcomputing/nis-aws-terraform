@@ -1,0 +1,87 @@
+name: 2 - Sync state and plan
+
+on:
+  workflow_dispatch: 
+    inputs:
+      worspace_path:
+        description: 'The path to the workspace to import into'
+        required: true
+        type: choice
+        options:
+          - 'Please choose a workspace'
+          - accounts/SBOX-9394/baseline/baseline-workspace
+        default: 'Please choose a workspace'
+
+
+# This is necessary for GitHub to request the OIDC token
+permissions:
+  id-token: write  # Required for OIDC
+  contents: write
+
+jobs:
+  terraformer_import:
+    runs-on: ubuntu-latest
+    # Run only if not on main branch
+    if: github.ref != 'refs/heads/main'  
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS OIDC
+        id: aws-oidc
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: "arn:aws:iam::582983609964:role/github-actions-oidc-role"
+          aws-region: us-west-2
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          cli_config_credentials_token: ${{ secrets.TFC_TOKEN }}
+
+      # Run terraform init to setup
+      - name: Run terraform init
+        working-directory: ${{ github.event.inputs.worspace_path }}
+        run: |
+          terraform init
+
+      - name: Get Terraform State File
+        id: find_tfstate
+        working-directory: ${{ github.event.inputs.worspace_path }}
+        run: |
+          # Search for the file matching the pattern
+          TFSTATE_FILE=$(find . -type f -name "terraform_*.tfstate")
+          
+          # Output the filename
+          echo "tfstate_file=${TFSTATE_FILE}" >> $GITHUB_OUTPUT
+
+      - name: Check the state file name
+        run: |
+          echo ${{ steps.find_tfstate.outputs.tfstate_file }}
+          
+      - name: Push the new state
+        working-directory: ${{ github.event.inputs.worspace_path }}
+        run: |
+          terraform state push ${{ steps.find_tfstate.outputs.tfstate_file }}
+
+      - name: Run a plan against the state to see what has changed
+        working-directory: ${{ github.event.inputs.worspace_path }}
+        run: |
+          terraform plan -var-file="env/prod.tfvars"
+
+      - name: Remove the local .tfstate file
+        working-directory: ${{ github.event.inputs.worspace_path }}
+        run: |
+          rm ${{ steps.find_tfstate.outputs.tfstate_file }}
+
+      - name: Commit and push changes to remove .tfstate file
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "Remove imported local .tfstate file"
+          git push --set-upstream origin "${GITHUB_REF_NAME}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

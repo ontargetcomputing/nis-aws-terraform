@@ -1,0 +1,78 @@
+name: Get Terraform Cloud Workspace State
+
+on:
+  workflow_dispatch: # Allows manual triggering of the workflow
+    inputs:
+      organization:
+        description: "Terraform Cloud organization name"
+        required: true
+        default: "balutbomber"
+      # project:
+      #   description: "Terraform Cloud project name"
+      #   required: true
+      #   default: "nis-aws"
+      workspace:
+        description: "Terraform Cloud workspace name"
+        required: true
+        default: "NIS-AWS-Accounts-SBOX-9394-baseline-workspace"
+
+jobs:
+  retrieve-state:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Terraform Credentials
+        env:
+          TERRAFORM_CREDENTIALS_PATH: ${{ github.workspace }}/.terraform.d/credentials.tfrc.json
+        run: |
+          mkdir -p ${{ github.workspace }}/.terraform.d
+          echo '{"credentials":{"app.terraform.io":{"token":"${{ secrets.TFC_TOKEN }}"}}}' > $TERRAFORM_CREDENTIALS_PATH
+
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      # - name: Retrieve Project ID
+      #   id: project
+      #   run: |
+      #     PROJECTS=$(curl -s --header "Authorization: Bearer ${{ secrets.TFC_TOKEN }}" "https://app.terraform.io/api/v2/organizations/${{ github.event.inputs.organization }}/projects")
+      #     PROJECT_ID=$(echo "$PROJECTS" | jq -r --arg PROJECT_NAME "${{ github.event.inputs.project }}" '.data[] | select(.attributes.name == $PROJECT_NAME) | .id')
+      #     if [ -z "$PROJECT_ID" ]; then
+      #       echo "Error: Project '${{ github.event.inputs.project }}' not found in organization '${{ github.event.inputs.organization }}'."
+      #       exit 1
+      #     fi
+      #     echo "PROJECT_ID=$PROJECT_ID" >> $GITHUB_ENV
+
+      - name: Retrieve Workspace ID
+        id: workspace
+        run: |
+          WORKSPACES=$(curl -s --header "Authorization: Bearer ${{ secrets.TFC_TOKEN }}" "https://app.terraform.io/api/v2/organizations/${{ github.event.inputs.organization }}/workspaces/${{ github.event.inputs.workspace }}")
+          echo $WORKSPACES
+          WORKSPACE_ID=$(echo "$WORKSPACES" | jq -r '.data.id')
+          if [ -z "$WORKSPACE_ID" ]; then
+            echo "Error: Workspace '${{ github.event.inputs.workspace }}' not found in project '${{ github.event.inputs.project }}'."
+            exit 1
+          fi
+          echo $WORKSPACE_ID
+          echo "WORKSPACE_ID=$WORKSPACE_ID" >> $GITHUB_ENV
+
+      - name: Retrieve Workspace State
+        run: |
+          echo "Checking state for workspace ID: ${{ env.WORKSPACE_ID }}..."
+          STATE_VERSION=$(curl -s --header "Authorization: Bearer ${{ secrets.TFC_TOKEN }}" "https://app.terraform.io/api/v2/workspaces/${{ env.WORKSPACE_ID }}/current-state-version")
+          
+          echo $STATE_VERSION
+          
+          # Check if the workspace has state
+          DOWNLOAD_URL=$(echo "$STATE_VERSION" | jq -r '.data.attributes.hosted-state-download-url // empty')
+          
+          if [ -z "$DOWNLOAD_URL" ]; then
+            echo "No state available for workspace '${{ github.event.inputs.workspace }}'."
+            echo "State file not downloaded."
+          else
+            echo "State found. Downloading state file..."
+            curl -s -o "${{ github.event.inputs.workspace }}_state.tfstate" "$DOWNLOAD_URL"
+            echo "State file saved as '${{ github.event.inputs.workspace }}_state.tfstate'."
+          fi

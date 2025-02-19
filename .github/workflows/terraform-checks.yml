@@ -1,0 +1,171 @@
+name: Terraform Checks
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+    paths:
+      - "accounts/**"
+
+jobs:
+  validate-workspace-changes:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files (Only in accounts/)
+        id: changed-files
+        run: |
+          git fetch origin ${{ github.event.pull_request.base.ref }} --depth=1
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }} HEAD | grep '^accounts/' || true)
+
+          # If there are no relevant changes, exit early
+          if [[ -z "$CHANGED_FILES" ]]; then
+            echo "No relevant changes in accounts/ directory."
+            exit 0
+          fi
+          echo "$CHANGED_FILES" > changed_files.txt
+
+      - name: Extract unique workspaces
+        id: check-workspaces
+        run: |
+          WORKSPACES=$(cat changed_files.txt | awk -F'/' '{print $1 "/" $2 "/" $3}' | sort -u)
+          echo "Modified workspaces:"
+          echo "$WORKSPACES"
+
+          UNIQUE_COUNT=$(echo "$WORKSPACES" | wc -l)
+
+          if [[ "$UNIQUE_COUNT" -eq 1 ]]; then
+            WORKSPACE_PATH=$(echo "$WORKSPACES")
+            echo "workspace_path=$WORKSPACE_PATH" >> $GITHUB_ENV
+            echo "::set-output name=workspace_path::$WORKSPACE_PATH"
+          fi
+
+          # Fail if multiple workspaces are modified
+          if [[ "$UNIQUE_COUNT" -gt 1 ]]; then
+            echo "❌ Multiple workspaces were modified. Please limit changes to a single workspace."
+            exit 1
+          fi
+
+  terraform-lint:
+    needs: validate-workspace-changes
+    if: ${{ needs.validate-workspace-changes.outputs.workspace_path != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download workspace path
+        uses: actions/download-artifact@v4
+        with:
+          name: workspace-path
+
+      - name: Read workspace path
+        id: read-path
+        run: |
+          echo "*************"
+          WORKSPACE_PATH=$(cat workspace_path.txt)
+          echo "Workspace Path: $WORKSPACE_PATH"
+          echo "workspace_path=$WORKSPACE_PATH" >> $GITHUB_ENV
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: latest
+
+      - name: Install TFLint
+        run: |
+          curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+          tflint --init
+
+      - name: Run Terraform Linter in the changed workspace
+        run: |
+          echo "🚀 Running TFLint in ${{ needs.validate-workspace-changes.outputs.workspace_path }}..."
+          flint --chdir=${{ needs.validate-workspace-changes.outputs.workspace_path }} --format=compact | tee tflint.log
+
+  terraform-tfsec:
+    needs: validate-workspace-changes
+    if: ${{ needs.validate-workspace-changes.outputs.workspace_path != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install tfsec (Terraform security scanner)
+        run: |
+          curl -s https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install.sh | bash
+
+      - name: Run SAST Security Scan (tfsec)
+        run: |
+          echo "🚀 Running tfsec in ${{ needs.validate-workspace-changes.outputs.workspace_path }}..."
+          tfsec ${{ needs.validate-workspace-changes.outputs.workspace_path }}
+
+  terraform-fmt:
+    needs: validate-workspace-changes
+    if: ${{ needs.validate-workspace-changes.outputs.workspace_path != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.9.8
+
+      - name: Get Workspace Path
+        run: echo "WORKSPACE_PATH=${{ needs.validate-workspace-changes.outputs.workspace_path }}" >> $GITHUB_ENV
+
+      - name: Run Terraform Format Check
+        id: fmt-check
+        run: |
+          if [ -d "$WORKSPACE_PATH" ]; then
+            terraform fmt -check -recursive "$WORKSPACE_PATH" || echo "needs_formatting=true" >> $GITHUB_ENV
+          fi
+
+      - name: Run Terraform Format
+        if: env.needs_formatting == 'true'
+        run: |
+          echo "🚀 Running terraform fmt in ${{ needs.validate-workspace-changes.outputs.workspace_path }}..."
+          terraform fmt -recursive "$WORKSPACE_PATH"
+
+      - name: Commit and Push Changes
+        if: env.needs_formatting == 'true'
+        run: |
+          echo "🚀 Commiting formatting changes in ${{ needs.validate-workspace-changes.outputs.workspace_path }}..."
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add "$WORKSPACE_PATH"
+          git commit -m "chore: auto-format Terraform files in $WORKSPACE_PATH"
+          git push origin HEAD:${{ github.head_ref }}
+
+  checkmarx:
+    needs: validate-workspace-changes
+    if: ${{ needs.validate-workspace-changes.outputs.workspace_path != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Checkmarx AST Github Action
+        uses: checkmarx/ast-github-action@v2
+        with:
+            project_name: ${{ github.repository }}
+            cx_tenant: ${{ secrets.CXTENANT }}
+            base_uri: ${{ secrets.CHECKMARX_URL }}
+            cx_client_id: ${{ secrets.CXCLIENTID }}
+            cx_client_secret: ${{ secrets.CHECKMARX_CLIENT_SECRET }}
+            additional_params: --scan-path="${{ needs.validate-workspace-changes.outputs.workspace_path }}" --report-format sarif --output-path results.sarif --project-groups DHCS-CBSB-AWS
+            scan_types: sast
+            threshold:
+              high: 0
+              medium: 0
+            branch: ${{ github.ref }}
+            generate_sarif_report: true
+        
