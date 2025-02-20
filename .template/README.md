@@ -4,13 +4,14 @@
 This `.templates` directory contains standard Terraform files to help you quickly set up a new Terraform workspace. Instead of writing Terraform files from scratch, you can copy these templates into a new workspace directory and customize them as needed.
 
 ## 📂 Directory Structure
-
+```
 .templates/
-│── providers.tf    # Defines Terraform providers (AWS, local, etc.)
-│── variables.tf    # Defines input variables (e.g., region, account number)
-│── outputs.tf      # Defines output values
-│── main.tf         # Example resource to start with
-│── backend.tf      # Defines Terraform Cloud backend (replace workspace name)
+  │── providers.tf    # Defines Terraform providers (AWS, local, etc.)
+  │── variables.tf    # Defines input variables (e.g., region, account number)
+  │── outputs.tf      # Defines output values
+  │── main.tf         # Example resource to start with
+  │── backend.tf      # Defines Terraform Cloud backend (replace workspace name)
+```
 
 ## 🛠 How to Use These Templates
 
