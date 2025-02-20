@@ -26,11 +26,9 @@ on:
         default: 'us-west-2'
 
 # This is necessary for GitHub to request the OIDC token
-# @CxIgnore - Start
 permissions:
   id-token: write  # Required for OIDC
   contents: write
-# @CxIgnore - End
 
 jobs:
   terraformer_import:

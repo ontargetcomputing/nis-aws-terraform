@@ -118,24 +118,8 @@ jobs:
         id: fmt-check
         run: |
           if [ -d "$WORKSPACE_PATH" ]; then
-            terraform fmt -check -recursive "$WORKSPACE_PATH" || echo "needs_formatting=true" >> $GITHUB_ENV
+            terraform fmt -check -diff -recursive "$WORKSPACE_PATH" 
           fi
-
-      - name: Run Terraform Format
-        if: env.needs_formatting == 'true'
-        run: |
-          echo "🚀 Running terraform fmt in ${{ needs.validate-workspace-changes.outputs.workspace_path }}..."
-          terraform fmt -recursive "$WORKSPACE_PATH"
-
-      - name: Commit and Push Changes
-        if: env.needs_formatting == 'true'
-        run: |
-          echo "🚀 Commiting formatting changes in ${{ needs.validate-workspace-changes.outputs.workspace_path }}..."
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add "$WORKSPACE_PATH"
-          git commit -m "chore: auto-format Terraform files in $WORKSPACE_PATH"
-          git push origin HEAD:${{ github.head_ref }}
 
   checkmarx:
     needs: validate-workspace-changes
@@ -153,9 +137,58 @@ jobs:
             base_uri: ${{ secrets.CHECKMARX_URL }}
             cx_client_id: ${{ secrets.CXCLIENTID }}
             cx_client_secret: ${{ secrets.CHECKMARX_CLIENT_SECRET }}
-            #source_dir: ${{ needs.validate-workspace-changes.outputs.workspace_path }} 
+            source_dir: ${{ needs.validate-workspace-changes.outputs.workspace_path }} 
             branch: ${{ github.ref }}
             github_token: ${{github.token }}
-            additional_params: "--project-groups DHCS-CBSB-AWS"
+            additional_params: >-
+              --project-groups DHCS-CBSB-AWS 
+              --report-format json 
+              --output-path cx_result.json
+        # Debug step to find results
 
-        
+      # Add a step to check findings and fail if needed
+      - name: Check for High/Medium Findings
+        if: always()
+        run: |
+          sudo chmod -R 777 cx_result.json 
+          cat cx_result.json/cx_result.json 
+          
+          RESULTS_FILE="cx_result.json/cx_result.json"
+          if [ -f "$RESULTS_FILE" ]; then
+            echo "Reading scan results from $RESULTS_FILE"
+            # First check if scan completed by looking for scanID
+            SCAN_ID=$(jq -r '.scanID' "$RESULTS_FILE")
+            if [ "$SCAN_ID" = "null" ] || [ -z "$SCAN_ID" ]; then
+              echo "❌ No scan ID found in results. Scan may have failed."
+              exit 1
+            fi
+            echo "Scan completed with ID: $SCAN_ID"
+            # Check if results are null (no findings)
+            RESULTS_NULL=$(jq '.results == null' "$RESULTS_FILE")
+            TOTAL_COUNT=$(jq '.totalCount' "$RESULTS_FILE")
+            if [ "$RESULTS_NULL" = "true" ] && [ "$TOTAL_COUNT" = "0" ]; then
+              echo "✅ No security issues found"
+              exit 0
+            fi
+            # If we have results, check for findings
+            HIGH_COUNT=$(jq '.results | map(select(.severity == "HIGH")) | length' "$RESULTS_FILE" || echo "0")
+            MEDIUM_COUNT=$(jq '.results | map(select(.severity == "MEDIUM")) | length' "$RESULTS_FILE" || echo "0")
+            echo "Found $HIGH_COUNT high severity issues"
+            echo "Found $MEDIUM_COUNT medium severity issues"
+            if [ "$HIGH_COUNT" -gt 0 ] || [ "$MEDIUM_COUNT" -gt 0 ]; then
+              echo "❌ Security issues found:"
+              echo "High severity: $HIGH_COUNT"
+              echo "Medium severity: $MEDIUM_COUNT"
+              # Show the actual findings
+              echo "\nHigh Severity Findings:"
+              jq '.results | map(select(.severity == "HIGH")) | .[] | {title, severity, description}' "$RESULTS_FILE"
+              echo "\nMedium Severity Findings:"
+              jq '.results | map(select(.severity == "MEDIUM")) | .[] | {title, severity, description}' "$RESULTS_FILE"
+              exit 1
+            else
+              echo "✅ No high or medium severity issues found"
+            fi
+          else
+            echo "Could not find results file at $RESULTS_FILE"
+            exit 1
+          fi
