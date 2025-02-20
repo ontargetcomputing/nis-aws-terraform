@@ -35,7 +35,7 @@ cd nis-aws-terraform
 
 ### 3️⃣ **Make Your Changes**
 
-  * If you are creating a new Terraform workspace, first follow the directions in [.terraform/README.md](.terraform/README.md).
+  * If you are creating a new Terraform workspace, first follow the directions in [.template/README.md](.template/README.md).
 
   * Modify Terraform files.
   * Ensure changes do not break existing functionality.
