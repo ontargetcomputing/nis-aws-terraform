@@ -4,6 +4,10 @@ Thank you for contributing to this repository! To ensure high-quality changes an
 
 ---
 
+## 🏗️ **Creating a new works**
+
+
+
 ## 🔄 **Branching Strategy**
 - The **`main` branch is protected** and **direct commits are not allowed**.
 - Contributors should **create branches** from `main` and submit a **Pull Request (PR)** for review.
@@ -18,8 +22,8 @@ Thank you for contributing to this repository! To ensure high-quality changes an
 ## 🛠️ **Workflow for Making Changes**
 ### 1️⃣ **Clone the Repository** 
 ```sh
-git clone https://github.com/dhcs-ets/NIS-AWS-Accounts.git
-cd NIS-AWS-Accounts
+git clone https://github.com/dhcs-ets/nis-aws-terraform.git
+cd nis-aws-terraform
 ```
 
 ### 2️⃣ **Create a New Branch**
@@ -31,9 +35,11 @@ cd NIS-AWS-Accounts
 
 ### 3️⃣ **Make Your Changes**
 
+  * If you are creating a new Terraform workspace, first follow the directions in [.terraform/README.md](.terraform/README.md).
+
   * Modify Terraform files.
-	* Ensure changes do not break existing functionality.
-	* Run terraform fmt to format the code.
+  * Ensure changes do not break existing functionality.
+  * Run terraform fmt to format the code.
 
 ### 4️⃣ **Commit Your Changes**
 ```sh
