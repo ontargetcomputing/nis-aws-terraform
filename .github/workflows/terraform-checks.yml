@@ -37,7 +37,7 @@ jobs:
       - name: Extract unique workspaces
         id: check-workspaces
         run: |
-          WORKSPACES=$(cat changed_files.txt | awk -F'/' '{print $1 "/" $2 }' | sort -u)
+          WORKSPACES=$(cat changed_files.txt | awk -F'/' '{print $1 "/" $2 "/" $3 }' | sort -u)
           echo "Modified workspaces:"
           echo "$WORKSPACES"
 

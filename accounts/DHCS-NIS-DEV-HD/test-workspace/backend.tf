@@ -3,7 +3,7 @@ terraform {
     hostname     = "app.terraform.io"
     organization = "DHCS"
     workspaces {
-      name = "__REPLACE_ME__"
+      name = "dddd"
     }
   }
   required_providers {

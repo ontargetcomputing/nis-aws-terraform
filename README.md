@@ -60,8 +60,6 @@ The repository is organized as follows:
   Contains reusable Terraform modules for common infrastructure patterns. Use these modules to define and deploy shared components across multiple environments.
 - **`README.md`**  
   This file provides an overview of the repository, usage instructions, and best practices for managing infrastructure across multiple AWS accounts.
-- **`modules/`**  
-  Contains reusable Terraform modules for common infrastructure patterns. Use these modules to define and deploy shared components across multiple environments.
 
 ---
 ## 📖 Contributing
