@@ -39,7 +39,7 @@ jobs:
           
           UNIQUE_COUNT=$(echo "$WORKSPACES" | wc -l)
           echo $UNIQUE_COUNT
-          if [[ "$UNIQUE_COUNT" -eq 1]]; then
+          if [[ "$UNIQUE_COUNT" -eq 1 ]]; then
             echo "✅ Single workspace modified: $WORKSPACES"
           elif [[ "$UNIQUE_COUNT" -eq 0 ]]; then
             echo "⚠️ No workspaces modified"
