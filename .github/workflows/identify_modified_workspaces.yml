@@ -22,22 +22,31 @@ jobs:
         id: changed-files
         run: |
           git fetch origin ${{ github.event.pull_request.base.ref }} --depth=1
-          CHANGED_FILES=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }} HEAD | grep '^accounts/' || true)
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }} HEAD | \
+            grep '^accounts/' | \
+            grep -v 'README.md' || true)
+          
           echo "$CHANGED_FILES" > changed_files.txt
+          echo "The changed files are:"
+          cat changed_files.txt
 
       - name: Extract unique workspaces
         id: check-workspaces
         run: |
-          WORKSPACES=$(cat changed_files.txt | awk -F'/' '{print $1 "/" $2 "/" $3 }' | sort -u)
+          WORKSPACES=$(cat changed_files.txt | awk -F'/' '{if (NF >= 3) print $1 "/" $2 "/" $3}' | sort -u)
           echo "Modified workspaces:"
           echo "$WORKSPACES"
-
+          
+          UNIQUE_COUNT=$(echo "$WORKSPACES" | grep -v '^$' | wc -l)
+          echo $UNIQUE_COUNT
           if [[ "$UNIQUE_COUNT" -eq 1 ]]; then
             echo "✅ Single workspace modified: $WORKSPACES"
           elif [[ "$UNIQUE_COUNT" -eq 0 ]]; then
             echo "⚠️ No workspaces modified"
           else
-            echo "❌ Multiple workspaces modified: $WORKSPACES"
+            echo "❌ Multiple workspaces modified: 
+            echo $WORKSPACES"
+            exit 1
           fi
 
           echo "$WORKSPACES" >> modified_workspaces.txt

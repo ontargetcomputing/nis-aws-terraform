@@ -2,31 +2,38 @@ name: Terraform Checks
 
 on:
   workflow_run:
-    workflows: ["Identify Modified Workspaces"]
+    workflows: 
+      - "Identify Modified Workspaces"
     types:
       - completed
 
+
 jobs:
-  process-workspace:
+  terraform-lint:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
-      - name: Download Workspace Status
-        uses: dawidd6/action-download-artifact@v3
-        with:
-          workflow: "Identify Modified Workspaces"
-          name: modified-workspaces
-          
-      - name: Check Status
-        id: check
+      - name: ECHO
         run: |
-          cat modified-workspaces.txt
-          STATUS=$(grep "status=" modified-workspaces.txt | cut -d'=' -f2)
-          if [[ "$STATUS" != "single" ]]; then
-            echo "Workflow skipped: Not a single workspace modification"
-            exit 0
-          fi
+          echo YYYYYYYYYYY
           
-          WORKSPACE=$(grep "workspace=" workspace-status.txt | cut -d'=' -f2)
-          echo "workspace=$WORKSPACE" >> $GITHUB_OUTPUT
-          echo "aFound single workspace: $WORKSPACE"
+      # - name: Download Workspace Status
+      #   uses: dawidd6/action-download-artifact@v3
+      #   with:
+      #     workflow: "Identify Modified Workspaces"
+      #     name: modified-workspaces
+          
+      # - name: Check Status
+      #   id: check
+      #   run: |
+      #     cat modified-workspaces.txt
+      #     STATUS=$(grep "status=" modified-workspaces.txt | cut -d'=' -f2)
+      #     if [[ "$STATUS" != "single" ]]; then
+      #       echo "Workflow skipped: Not a single workspace modification"
+      #       exit 0
+      #     fi
+          
+      #     WORKSPACE=$(grep "workspace=" workspace-status.txt | cut -d'=' -f2)
+      #     echo "workspace=$WORKSPACE" >> $GITHUB_OUTPUT
+      #     echo "aFound single workspace: $WORKSPACE"
 
