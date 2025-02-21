@@ -10,6 +10,10 @@ jobs:
   process-workspace:
     runs-on: ubuntu-latest
     steps:
+      - name: ECHO
+        run: |
+          echo YYYYYYYYYYY
+          
       - name: Download Workspace Status
         uses: dawidd6/action-download-artifact@v3
         with:
