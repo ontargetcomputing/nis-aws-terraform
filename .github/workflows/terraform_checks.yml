@@ -14,23 +14,23 @@ jobs:
         run: |
           echo YYYYYYYYYYY
           
-      - name: Download Workspace Status
-        uses: dawidd6/action-download-artifact@v3
-        with:
-          workflow: "Identify Modified Workspaces"
-          name: modified-workspaces
+      # - name: Download Workspace Status
+      #   uses: dawidd6/action-download-artifact@v3
+      #   with:
+      #     workflow: "Identify Modified Workspaces"
+      #     name: modified-workspaces
           
-      - name: Check Status
-        id: check
-        run: |
-          cat modified-workspaces.txt
-          STATUS=$(grep "status=" modified-workspaces.txt | cut -d'=' -f2)
-          if [[ "$STATUS" != "single" ]]; then
-            echo "Workflow skipped: Not a single workspace modification"
-            exit 0
-          fi
+      # - name: Check Status
+      #   id: check
+      #   run: |
+      #     cat modified-workspaces.txt
+      #     STATUS=$(grep "status=" modified-workspaces.txt | cut -d'=' -f2)
+      #     if [[ "$STATUS" != "single" ]]; then
+      #       echo "Workflow skipped: Not a single workspace modification"
+      #       exit 0
+      #     fi
           
-          WORKSPACE=$(grep "workspace=" workspace-status.txt | cut -d'=' -f2)
-          echo "workspace=$WORKSPACE" >> $GITHUB_OUTPUT
-          echo "aFound single workspace: $WORKSPACE"
+      #     WORKSPACE=$(grep "workspace=" workspace-status.txt | cut -d'=' -f2)
+      #     echo "workspace=$WORKSPACE" >> $GITHUB_OUTPUT
+      #     echo "aFound single workspace: $WORKSPACE"
 
