@@ -28,5 +28,5 @@ jobs:
           
           WORKSPACE=$(grep "workspace=" workspace-status.txt | cut -d'=' -f2)
           echo "workspace=$WORKSPACE" >> $GITHUB_OUTPUT
-          echo "Found single workspace: $WORKSPACE"
+          echo "aFound single workspace: $WORKSPACE"
 

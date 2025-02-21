@@ -2,7 +2,7 @@ name: Semantic Version Label Check
 on:
   pull_request:
     branches:
-      - main
+      - mainaaa
     types: [opened, synchronize, labeled, unlabeled]
 jobs:
   semver_label_check:
