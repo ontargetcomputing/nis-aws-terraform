@@ -2,13 +2,16 @@ name: Terraform Checks
 
 on:
   workflow_run:
-    workflows: ["Identify Modified Workspaces"]
+    workflows: 
+      - "Identify Modified Workspaces"
     types:
       - completed
 
+
 jobs:
-  process-workspace:
+  terraform-lint:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: ECHO
         run: |
