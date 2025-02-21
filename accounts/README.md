@@ -1,7 +1,7 @@
 # Accounts Directory
 
 ## Overview
-The `accounts/` directory organizes infrastructure configurations by AWS account. Each subfolder corresponds to a specific AWS account and is further divided into directories for managing baseline infrastructure and application-specific workloads.
+The `accounts/` directory organizes infrastructure configurations by AWS account. Each subfolder corresponds to a specific AWS account and is further divided into directories for managing baseline infrastructure and application-specific workloads. RDB
 
 ## Directory Structure
 
