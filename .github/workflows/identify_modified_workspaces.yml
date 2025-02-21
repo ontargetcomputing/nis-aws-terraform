@@ -12,8 +12,6 @@ on:
 jobs:
   identify-modified-workspaces:
     runs-on: ubuntu-latest
-    outputs:      
-      workspace_path: ${{ steps.check-workspaces.outputs.workspace_path }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -44,7 +42,7 @@ jobs:
 
           echo "$WORKSPACES" >> modified_workspaces.txt
 
-      - name: Upload Workspace Status
+      - name: Upload Modified Workspaces
         uses: actions/upload-artifact@v4
         with:
           name: modified-workspaces
