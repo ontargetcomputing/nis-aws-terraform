@@ -2,7 +2,7 @@ name: Terraform Checks
 
 on:
   workflow_run:
-    workflows: ["Check Modified Workspaces"]
+    workflows: ["Identify Modified Workspaces"]
     types:
       - completed
 
@@ -13,7 +13,7 @@ jobs:
       - name: Download Workspace Status
         uses: dawidd6/action-download-artifact@v3
         with:
-          workflow: Check Modified Workspaces
+          workflow: "Identify Modified Workspaces"
           name: workspace-status
           
       - name: Check Status

@@ -1,4 +1,4 @@
-name: Check Modified Workspaces
+name: Identify Modified Workspaces
 on:
   pull_request:
     branches:
@@ -10,7 +10,7 @@ on:
       - "accounts/**"
 
 jobs:
-  ensure-single-workspace:
+  identify-modified-workspaces:
     runs-on: ubuntu-latest
     outputs:      
       workspace_path: ${{ steps.check-workspaces.outputs.workspace_path }}
