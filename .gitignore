@@ -52,5 +52,3 @@ Pipfile
 *.tfstate
 destination_terraform.*
 .terraform.lock.hcl
-
-changed_files.txt
