@@ -14,13 +14,13 @@ jobs:
         uses: dawidd6/action-download-artifact@v3
         with:
           workflow: "Identify Modified Workspaces"
-          name: workspace-status
+          name: modified-workspaces
           
       - name: Check Status
         id: check
         run: |
-          cat workspace-status-txt
-          STATUS=$(grep "status=" workspace-status.txt | cut -d'=' -f2)
+          cat modified-workspaces.txt
+          STATUS=$(grep "status=" modified-workspaces.txt | cut -d'=' -f2)
           if [[ "$STATUS" != "single" ]]; then
             echo "Workflow skipped: Not a single workspace modification"
             exit 0

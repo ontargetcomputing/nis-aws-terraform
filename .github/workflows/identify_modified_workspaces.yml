@@ -25,13 +25,6 @@ jobs:
         run: |
           git fetch origin ${{ github.event.pull_request.base.ref }} --depth=1
           CHANGED_FILES=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }} HEAD | grep '^accounts/' || true)
-
-          if [[ -z "$CHANGED_FILES" ]]; then
-            echo "No relevant changes in accounts/ directory."
-            echo "status=no_changes" >> workspace-status.txt
-            exit 0
-          fi
-
           echo "$CHANGED_FILES" > changed_files.txt
 
       - name: Extract unique workspaces
@@ -41,20 +34,18 @@ jobs:
           echo "Modified workspaces:"
           echo "$WORKSPACES"
 
-          UNIQUE_COUNT=$(echo "$WORKSPACES" | wc -l)
-
           if [[ "$UNIQUE_COUNT" -eq 1 ]]; then
-            WORKSPACE_PATH=$(echo "$WORKSPACES")
-            echo "status=single" >> workspace-status.txt
-            echo "workspace=$WORKSPACE_PATH" >> workspace-status.txt
-            echo "✅ Single workspace modified: $WORKSPACE_PATH"
-           else
-            echo "status=multiple" >> workspace-status.txt
+            echo "✅ Single workspace modified: $WORKSPACES"
+          elif [[ "$UNIQUE_COUNT" -eq 0 ]]; then
+            echo "⚠️ No workspaces modified"
+          else
             echo "❌ Multiple workspaces modified: $WORKSPACES"
           fi
+
+          echo "$WORKSPACES" >> modified_workspaces.txt
 
       - name: Upload Workspace Status
         uses: actions/upload-artifact@v4
         with:
-          name: workspace-status
-          path: workspace-status.txt
+          name: modified-workspaces
+          path: modified-workspaces.txt
