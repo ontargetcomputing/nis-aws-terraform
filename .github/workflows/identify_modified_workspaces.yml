@@ -35,11 +35,10 @@ jobs:
         run: |
           WORKSPACES=$(cat changed_files.txt | awk -F'/' '{if (NF >= 3) print $1 "/" $2 "/" $3}' | sort -u)
           echo "Modified workspaces:"
-          echo "aaaa"
           echo "$WORKSPACES"
-          echo "KDFJDKFJDKFJD"
+          
           UNIQUE_COUNT=$(echo "$WORKSPACES" | wc -l)
-
+          echo $UNIQUE_COUNT
           if [[ "$UNIQUE_COUNT" -eq 1]]; then
             echo "✅ Single workspace modified: $WORKSPACES"
           elif [[ "$UNIQUE_COUNT" -eq 0 ]]; then
