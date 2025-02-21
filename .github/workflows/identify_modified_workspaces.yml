@@ -53,5 +53,5 @@ jobs:
       - name: Upload Modified Workspaces
         uses: actions/upload-artifact@v4
         with:
-          name: modified-workspaces
-          path: modified-workspaces.txt
+          name: modified_workspaces
+          path: modified_workspaces.txt
