@@ -27,6 +27,8 @@ jobs:
             grep -v 'README.md' || true)
           
           echo "$CHANGED_FILES" > changed_files.txt
+          echo "The changed files are:"
+          cat changed_files.txt
 
       - name: Extract unique workspaces
         id: check-workspaces
