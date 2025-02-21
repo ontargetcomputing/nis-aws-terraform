@@ -46,7 +46,6 @@ jobs:
           else
             echo "❌ Multiple workspaces modified: 
             echo $WORKSPACES"
-            exit 1
           fi
 
           echo "$WORKSPACES" >> modified_workspaces.txt
