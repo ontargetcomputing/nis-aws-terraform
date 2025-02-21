@@ -37,7 +37,7 @@ jobs:
           echo "Modified workspaces:"
           echo "$WORKSPACES"
           
-          UNIQUE_COUNT=$(echo "$WORKSPACES" | wc -l)
+          UNIQUE_COUNT=$(echo "$WORKSPACES" | grep -v '^$' | wc -l)
           echo $UNIQUE_COUNT
           if [[ "$UNIQUE_COUNT" -eq 1 ]]; then
             echo "✅ Single workspace modified: $WORKSPACES"
