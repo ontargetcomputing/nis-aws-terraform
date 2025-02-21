@@ -1,0 +1,60 @@
+name: Check Modified Workspaces
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+    paths:
+      - "accounts/**"
+
+jobs:
+  ensure-single-workspace:
+    runs-on: ubuntu-latest
+    outputs:      
+      workspace_path: ${{ steps.check-workspaces.outputs.workspace_path }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files (Only in accounts/)
+        id: changed-files
+        run: |
+          git fetch origin ${{ github.event.pull_request.base.ref }} --depth=1
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }} HEAD | grep '^accounts/' || true)
+
+          if [[ -z "$CHANGED_FILES" ]]; then
+            echo "No relevant changes in accounts/ directory."
+            echo "status=no_changes" >> workspace-status.txt
+            exit 0
+          fi
+
+          echo "$CHANGED_FILES" > changed_files.txt
+
+      - name: Extract unique workspaces
+        id: check-workspaces
+        run: |
+          WORKSPACES=$(cat changed_files.txt | awk -F'/' '{print $1 "/" $2 "/" $3 }' | sort -u)
+          echo "Modified workspaces:"
+          echo "$WORKSPACES"
+
+          UNIQUE_COUNT=$(echo "$WORKSPACES" | wc -l)
+
+          if [[ "$UNIQUE_COUNT" -eq 1 ]]; then
+            WORKSPACE_PATH=$(echo "$WORKSPACES")
+            echo "status=single" >> workspace-status.txt
+            echo "workspace=$WORKSPACE_PATH" >> workspace-status.txt
+            echo "✅ Single workspace modified: $WORKSPACE_PATH"
+           else
+            echo "status=multiple" >> workspace-status.txt
+            echo "❌ Multiple workspaces modified: $WORKSPACES"
+          fi
+
+      - name: Upload Workspace Status
+        uses: actions/upload-artifact@v4
+        with:
+          name: workspace-status
+          path: workspace-status.txt
