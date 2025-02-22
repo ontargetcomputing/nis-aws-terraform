@@ -139,7 +139,7 @@ jobs:
 
           # If no tag exists, start at 0.0.1
           if [[ -z "$HIGHEST_TAG" ]]; then
-            HIGHEST_TAG="0.0.0"
+            NEW_VERSION="0.0.1"
           else
             # Bump version based on type
             IFS='.' read -r major minor patch <<< "$HIGHEST_TAG"
@@ -182,20 +182,3 @@ jobs:
           echo "New Version: ${{ steps.version_bump.outputs.version }}"
           echo "New Tag: ${{ steps.version_bump.outputs.tag }}"
 
-      # - name: Create Tag on PR Branch
-      #   run: |
-      #     git config user.name github-actions
-      #     git config user.email github-actions@github.com
-      #     git tag ${{ steps.version-bump.outputs.tag }}
-      #     git push origin ${{ steps.version-bump.outputs.tag }}
-
-      # - name: Merge PR
-      #   uses: actions/github-script@v7
-      #   with:
-      #     github-token: ${{secrets.GITHUB_TOKEN}}
-      #     script: |
-      #       github.rest.pulls.merge({
-      #         owner: context.repo.owner,
-      #         repo: context.repo.repo,
-      #         pull_number: context.issue.number
-      #       })
