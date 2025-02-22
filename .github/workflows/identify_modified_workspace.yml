@@ -37,6 +37,7 @@ jobs:
           fi
           echo $BASE_REF
           echo $HEAD_REF
+          echo ${{ github.event.pull_request }}
 
           git fetch origin main --depth=1
 
