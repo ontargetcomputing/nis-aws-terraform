@@ -47,7 +47,7 @@ jobs:
             PR_DETAILS=$(curl -s -H "Authorization: token $GITHUB_TOKEN" $PR_URL)
             
             # Extract head and base branch names
-            HEAD_REF=$(echo "$PR_DETAILS" | jq -r '.head.ref')
+            HEAD_REF="origin/$(echo "$PR_DETAILS" | jq -r '.head.ref')"
           fi
           BASE_REF="origin/main"
           echo $BASE_REF
