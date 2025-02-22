@@ -26,7 +26,7 @@ jobs:
       - name: Get changed files (Only in accounts/)
         id: changed-files2
         run: |
-          echo "${{ github.event_name }}
+          echo "${{ github.event_name }}"
 
       - name: Get changed files (Only in accounts/)
         id: changed-files
