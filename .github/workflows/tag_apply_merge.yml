@@ -116,3 +116,8 @@ jobs:
               semver: [major|minor|patch]
               comment: your comment here`
             });
+
+      - name: Valid Format
+        if: success()
+        run: |
+          echo "HELLO THERE"
