@@ -35,20 +35,23 @@ jobs:
 
       - name: Get changed files (Only in accounts/)
         id: changed-files
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.issue.pull_request.url }}
         run: |
           # Determine base and head refs based on event type
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             HEAD_REF="HEAD"
           else
             # For issue_comment, we need to fetch PR's base and head
-            echo "1"
-            echo ${{ github.event }}
-            echo "2"
-            HEAD_REF="origin/${{ github.event.pull_request.head.ref }}"
+            PR_DETAILS=$(curl -s -H "Authorization: token $GITHUB_TOKEN" $PR_URL)
+            
+            # Extract head and base branch names
+            HEAD_REF=$(echo "$PR_DETAILS" | jq -r '.head.ref')
           fi
           BASE_REF="origin/main"
+          echo $BASE_REF
           echo $HEAD_REF
-          echo ${{ github.event.pull_request }}
 
           git fetch origin main --depth=1
 
