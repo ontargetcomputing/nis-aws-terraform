@@ -28,6 +28,18 @@ jobs:
     if: ${{ needs.process_comment.outputs.trigger == 'true' }}
     uses: ./.github/workflows/identify_modified_workspace.yml
 
+
+  debug_job:
+    needs: 
+      - process-comment
+      - identify_modified_workspace
+    runs-on: ubuntu-latest
+    steps:
+      - name: Debug Output
+        run: |
+          echo "Process Comment Trigger: ${{ needs.process_comment.outputs.trigger }}"
+          echo "Identify Modified Workspace Triggered"
+
   # identify_modified_workspace:
   #   uses: ./.github/workflows/identify_modified_workspace.yml
 
