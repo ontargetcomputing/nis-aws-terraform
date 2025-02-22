@@ -189,3 +189,31 @@ jobs:
           echo "New Version: ${{ steps.version_bump.outputs.version }}"
           echo "New Tag: ${{ steps.version_bump.outputs.tag }}"
 
+      - name: Create Tag on PR Branch
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git tag ${{ steps.version_bump.outputs.tag }}
+          git push origin ${{ steps.version_bump.outputs.tag }}
+
+      - name: Merge PR with Squash
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const { data: pullRequest } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+
+            // Create a commit message that includes the PR title and body
+            const commitMessage = `${pullRequest.title}\n\n${pullRequest.body || ''}\n\nComment: ${{ steps.parse_command.outputs.comment_text }}\n\nCloses #${context.issue.number}`;
+
+            await github.rest.pulls.merge({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              merge_method: 'squash',
+              commit_title: commitMessage
+            });
