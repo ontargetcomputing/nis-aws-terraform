@@ -22,7 +22,7 @@ jobs:
         id: changed-files
         run: |
           git fetch origin ${{ github.event.pull_request.base.ref }} --depth=1
-          CHANGED_FILES=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }} HEAD | grep '^accounts/' || true)
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }} HEAD | grep '^accounts/' | grep -v 'README.md' || true)
 
           # If there are no relevant changes, exit early
           if [[ -z "$CHANGED_FILES" ]]; then
