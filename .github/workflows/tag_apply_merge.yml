@@ -6,60 +6,78 @@ on:
 
 jobs:
   process-comment:
-    if: github.event.issue.pull_request && contains(github.event.comment.body, 'action: apply')
     runs-on: ubuntu-latest
-    outputs:
-      workspace: ${{ steps.get-workspace.outputs.workspace }}
-      version_bump: ${{ steps.parse-command.outputs.version_bump }}
-      comment_text: ${{ steps.parse-command.outputs.comment_text }}
-      branch_name: ${{ steps.get-pr.outputs.branch_name }}
+    if: github.event.issue.pull_request 
     steps:
-      - name: Parse Command
-        id: parse-command
+      - name: "Check for 'action: apply' comment"
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        id: check-comment
         run: |
-          COMMENT="${{ github.event.comment.body }}"
-          
-          # Check if comment starts with 'action: apply'
-          if [[ ! "$COMMENT" =~ ^action:\ apply ]]; then
-            echo "Comment must start with 'action: apply'"
-            exit 1
+          if [[ "$COMMENT_BODY" == *"action: apply"* ]]; then
+            echo "Matched comment with 'action: apply'"
+            echo "trigger=true" >> $GITHUB_OUTPUT
+          else
+            echo "trigger=false" >> $GITHUB_OUTPUT
           fi
-          
-          # Extract version bump
-          VERSION_BUMP=$(echo "$COMMENT" | grep -oP 'semver: \K(major|minor|patch)' || echo '')
-          if [[ -z "$VERSION_BUMP" ]]; then
-            echo "Error: Invalid or missing semver specification."
-            echo "Comment must follow format:"
-            echo "action: apply"
-            echo "semver: [major|minor|patch]"
-            echo "comment: your comment here"
-            exit 1
-          fi
-          VERSION_BUMP=$(echo "$VERSION_BUMP" | tr '[:lower:]' '[:upper:]')
-          
-          # Extract comment
-          COMMENT_TEXT=$(echo "$COMMENT" | grep -oP 'comment: \K(.*)$' || echo '')
-          if [[ -z "$COMMENT_TEXT" ]]; then
-            echo "Error: Missing comment text"
-            echo "Please provide a comment describing the changes"
-            exit 1
-          fi
-          
-          echo "version_bump=$VERSION_BUMP" >> $GITHUB_OUTPUT
-          echo "comment_text=$COMMENT_TEXT" >> $GITHUB_OUTPUT
+      - name: Checkout code
+        if: steps.check-comment.outputs.trigger == 'true'
+        uses: actions/checkout@v4
 
-      - name: Comment on Invalid Format
-        if: failure()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: ${{ github.event.issue.number }},
-              body: `❌ Invalid comment format. Please use:
+      - name: ECHO
+        if: steps.check-comment.outputs.trigger == 'true'
+        run: |
+          echo "HELLO"
+
+
+
+    
+      # - name: Parse Command
+      #   id: parse-command
+      #   run: |
+      #     COMMENT="${{ github.event.comment.body }}"
+          
+      #     # Check if comment starts with 'action: apply'
+      #     if [[ ! "$COMMENT" =~ ^action:\ apply ]]; then
+      #       echo "Comment must start with 'action: apply'"
+      #       exit 1
+      #     fi
+          
+      #     # Extract version bump
+      #     VERSION_BUMP=$(echo "$COMMENT" | grep -oP 'semver: \K(major|minor|patch)' || echo '')
+      #     if [[ -z "$VERSION_BUMP" ]]; then
+      #       echo "Error: Invalid or missing semver specification."
+      #       echo "Comment must follow format:"
+      #       echo "action: apply"
+      #       echo "semver: [major|minor|patch]"
+      #       echo "comment: your comment here"
+      #       exit 1
+      #     fi
+      #     VERSION_BUMP=$(echo "$VERSION_BUMP" | tr '[:lower:]' '[:upper:]')
+          
+      #     # Extract comment
+      #     COMMENT_TEXT=$(echo "$COMMENT" | grep -oP 'comment: \K(.*)$' || echo '')
+      #     if [[ -z "$COMMENT_TEXT" ]]; then
+      #       echo "Error: Missing comment text"
+      #       echo "Please provide a comment describing the changes"
+      #       exit 1
+      #     fi
+          
+      #     echo "version_bump=$VERSION_BUMP" >> $GITHUB_OUTPUT
+      #     echo "comment_text=$COMMENT_TEXT" >> $GITHUB_OUTPUT
+
+      # - name: Comment on Invalid Format
+      #   if: failure()
+      #   uses: actions/github-script@v7
+      #   with:
+      #     script: |
+      #       github.rest.issues.createComment({
+      #         owner: context.repo.owner,
+      #         repo: context.repo.repo,
+      #         issue_number: ${{ github.event.issue.number }},
+      #         body: `❌ Invalid comment format. Please use:
               
-              action: apply
-              semver: [major|minor|patch]
-              comment: your comment here`
-            });
+      #         action: apply
+      #         semver: [major|minor|patch]
+      #         comment: your comment here`
+      #       });
