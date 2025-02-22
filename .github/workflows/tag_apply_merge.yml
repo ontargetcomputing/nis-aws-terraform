@@ -25,7 +25,7 @@ jobs:
 
   identify_modified_workspace:
     needs: process-comment
-    if: ${{ needs.process_comment.outputs.trigger == 'true' }}
+    if: ${{ needs.process-comment.outputs.trigger == 'true' }}
     uses: ./.github/workflows/identify_modified_workspace.yml
 
 
