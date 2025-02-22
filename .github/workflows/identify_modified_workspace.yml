@@ -23,8 +23,7 @@ jobs:
         run: |
           rm changed_files.txt
 
-      - name: Get changed files (Only in accounts/)
-        id: changed-files2
+      - name: Report event type
         run: |
           echo "${{ github.event_name }}"
 
@@ -33,14 +32,15 @@ jobs:
         run: |
           # Determine base and head refs based on event type
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            BASE_REF="origin/main"
             HEAD_REF="HEAD"
           else
             # For issue_comment, we need to fetch PR's base and head
-            BASE_REF="origin/main"
+            echo "1"
+            echo ${{ github.event }}
+            echo "2"
             HEAD_REF="origin/${{ github.event.pull_request.head.ref }}"
           fi
-          echo $BASE_REF
+          BASE_REF="origin/main"
           echo $HEAD_REF
           echo ${{ github.event.pull_request }}
 
