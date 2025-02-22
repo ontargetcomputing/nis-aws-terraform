@@ -1,37 +1,153 @@
 name: Terraform Checks
 
 on:
-  workflow_run:
-    workflows: 
-      - "Identify Modified Workspaces"
+  pull_request:
+    branches:
+      - maina
     types:
-      - completed
-
+      - opened
+      - synchronize
+    paths:
+      - "accounts/**"
 
 jobs:
-  terraform-lint:
-    runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    steps:
-      - name: Download Workspace Status
-        uses: actions/download-artifact@v4
-        with:
-          name: modified_workspaces-${{ github.event.workflow_run.id }}
-          
-      - name: Display structure of downloaded files
-        run: ls -R
+  identify_modified_workspace:
+    uses: ./.github/workflows/identify_modified_workspace.yml
 
-      - name: Check Status
-        id: check
+  terraform-lint:
+    needs: identify_modified_workspace
+    if: ${{ needs.identify_modified_workspace.outputs.workspace_path != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: latest
+
+      - name: Install TFLint
         run: |
-          cat modified_workspaces.txt
-          STATUS=$(grep "status=" modified-workspaces.txt | cut -d'=' -f2)
-          if [[ "$STATUS" != "single" ]]; then
-            echo "Workflow skipped: Not a single workspace modification"
-            exit 0
+          curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+          tflint --init
+
+      - name: Run Terraform Linter in the changed workspace
+        run: |
+          echo "🚀 Running TFLint in ${{ needs.validate-workspace-changes.outputs.workspace_path }}..."
+          flint --chdir=${{ needs.validate-workspace-changes.outputs.workspace_path }} --format=compact | tee tflint.log
+
+  terraform-tfsec:
+    needs: identify_modified_workspace
+    if: ${{ needs.identify_modified_workspace.outputs.workspace_path != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install tfsec
+        run: |
+          wget -q -O tfsec https://github.com/aquasecurity/tfsec/releases/latest/download/tfsec-linux-amd64
+          chmod +x tfsec
+          sudo mv tfsec /usr/local/bin/
+
+      - name: Run tfsec
+        run: |
+          echo "🚀 Running tfsec in ${{ needs.validate-workspace-changes.outputs.workspace_path }}..."
+          tfsec ${{ needs.validate-workspace-changes.outputs.workspace_path }}
+
+  terraform-fmt:
+    needs: identify_modified_workspace
+    if: ${{ needs.identify_modified_workspace.outputs.workspace_path != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.9.8
+
+      - name: Get Workspace Path
+        run: echo "WORKSPACE_PATH=${{ needs.validate-workspace-changes.outputs.workspace_path }}" >> $GITHUB_ENV
+
+      - name: Run Terraform Format Check
+        id: fmt-check
+        run: |
+          if [ -d "$WORKSPACE_PATH" ]; then
+            terraform fmt -check -diff -recursive "$WORKSPACE_PATH" 
           fi
+
+  checkmarx:
+    needs: identify_modified_workspace
+    if: ${{ needs.identify_modified_workspace.outputs.workspace_path != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Checkmarx AST Github Action
+        uses: checkmarx/ast-github-action@main
+        with:
+            project_name: ${{ github.repository }}
+            cx_tenant: ${{ secrets.CXTENANT }}
+            base_uri: ${{ secrets.CHECKMARX_URL }}
+            cx_client_id: ${{ secrets.CXCLIENTID }}
+            cx_client_secret: ${{ secrets.CHECKMARX_CLIENT_SECRET }}
+            source_dir: ${{ needs.validate-workspace-changes.outputs.workspace_path }} 
+            branch: ${{ github.ref }}
+            github_token: ${{github.token }}
+            additional_params: >-
+              --project-groups DHCS-CBSB-AWS 
+              --report-format json 
+              --output-path cx_result.json
+        # Debug step to find results
+
+      # Add a step to check findings and fail if needed
+      - name: Check for High/Medium Findings
+        if: always()
+        run: |
+          sudo chmod -R 777 cx_result.json 
+          cat cx_result.json/cx_result.json 
           
-          WORKSPACE=$(grep "workspace=" workspace-status.txt | cut -d'=' -f2)
-          echo "workspace=$WORKSPACE" >> $GITHUB_OUTPUT
-          echo "aFound single workspace: $WORKSPACE"
+          RESULTS_FILE="cx_result.json/cx_result.json"
+          if [ -f "$RESULTS_FILE" ]; then
+            echo "Reading scan results from $RESULTS_FILE"
+            # First check if scan completed by looking for scanID
+            SCAN_ID=$(jq -r '.scanID' "$RESULTS_FILE")
+            if [ "$SCAN_ID" = "null" ] || [ -z "$SCAN_ID" ]; then
+              echo "❌ No scan ID found in results. Scan may have failed."
+              exit 1
+            fi
+            echo "Scan completed with ID: $SCAN_ID"
+            # Check if results are null (no findings)
+            RESULTS_NULL=$(jq '.results == null' "$RESULTS_FILE")
+            TOTAL_COUNT=$(jq '.totalCount' "$RESULTS_FILE")
+            if [ "$RESULTS_NULL" = "true" ] && [ "$TOTAL_COUNT" = "0" ]; then
+              echo "✅ No security issues found"
+              exit 0
+            fi
+            # If we have results, check for findings
+            HIGH_COUNT=$(jq '.results | map(select(.severity == "HIGH")) | length' "$RESULTS_FILE" || echo "0")
+            MEDIUM_COUNT=$(jq '.results | map(select(.severity == "MEDIUM")) | length' "$RESULTS_FILE" || echo "0")
+            echo "Found $HIGH_COUNT high severity issues"
+            echo "Found $MEDIUM_COUNT medium severity issues"
+            if [ "$HIGH_COUNT" -gt 0 ] || [ "$MEDIUM_COUNT" -gt 0 ]; then
+              echo "❌ Security issues found:"
+              echo "High severity: $HIGH_COUNT"
+              echo "Medium severity: $MEDIUM_COUNT"
+              # Show the actual findings
+              echo "\nHigh Severity Findings:"
+              jq '.results | map(select(.severity == "HIGH")) | .[] | {title, severity, description}' "$RESULTS_FILE"
+              echo "\nMedium Severity Findings:"
+              jq '.results | map(select(.severity == "MEDIUM")) | .[] | {title, severity, description}' "$RESULTS_FILE"
+              exit 1
+            else
+              echo "✅ No high or medium severity issues found"
+            fi
+          else
+            echo "Could not find results file at $RESULTS_FILE"
+            exit 1
+          fi
 

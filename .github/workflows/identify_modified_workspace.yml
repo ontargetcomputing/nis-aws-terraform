@@ -1,0 +1,54 @@
+name: Identify Modified Workspace
+
+on:
+  workflow_call:
+    outputs:
+      workspace_path:
+        description: "The path to the modified workspace"
+        value: ${{ jobs.identify-modified-workspace.outputs.workspace_path }}
+
+jobs:
+  identify-modified-workspace:
+    runs-on: ubuntu-latest
+    outputs:
+      workspace_path: ${{ steps.check-workspaces.outputs.workspace_path }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files (Only in accounts/)
+        id: changed-files
+        run: |
+          git fetch origin ${{ github.event.pull_request.base.ref }} --depth=1
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }} HEAD | grep '^accounts/' || true)
+
+          # If there are no relevant changes, exit early
+          if [[ -z "$CHANGED_FILES" ]]; then
+            echo "No relevant changes in accounts/ directory."
+            exit 0
+          fi
+          echo "$CHANGED_FILES" > changed_files.txt
+
+      - name: Extract unique workspaces
+        id: check-workspaces
+        run: |
+          WORKSPACES=$(cat changed_files.txt | awk -F'/' '{print $1 "/" $2 "/" $3 }' | sort -u)
+          echo "Modified workspaces:"
+          echo "$WORKSPACES"
+
+          UNIQUE_COUNT=$(echo "$WORKSPACES" | wc -l)
+
+          if [[ "$UNIQUE_COUNT" -eq 1 ]]; then
+            echo "✅ There is a single workspace modified $WORKSPACES"
+            WORKSPACE_PATH=$(echo "$WORKSPACES")
+            echo "workspace_path=$WORKSPACE_PATH" >> $GITHUB_ENV
+            echo "::set-output name=workspace_path::$WORKSPACE_PATH"
+          fi
+
+          # Fail if multiple workspaces are modified
+          if [[ "$UNIQUE_COUNT" -gt 1 ]]; then
+            echo "❌ Multiple workspaces were modified. Please limit changes to a single workspace."
+            exit 1
+          fi
