@@ -40,8 +40,25 @@ jobs:
         run: |
           echo "Process Comment Trigger: ${{ needs.process-comment.outputs.trigger }}"
 
-      - name: Checkout code
+      - name: Get PR Branch Information
+        id: pr-info
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Fetch PR details using the issue URL
+          PR_URL="${{ github.event.issue.pull_request.url }}"
+          PR_DETAILS=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "$PR_URL")
+          
+          # Extract head and base branch names
+          HEAD_REF=$(echo "$PR_DETAILS" | jq -r '.head.ref')
+          echo "HEAD_REF=$HEAD_REF"
+          echo "head_ref=$HEAD_REF" >> "$GITHUB_OUTPUT"
+                
+      - name: Checkout PR Branch
         uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.pr-info.outputs.head_ref }}
+          fetch-depth: 0
 
       - name: Get branch information
         run: |
@@ -49,10 +66,6 @@ jobs:
           echo "Full ref: $(git rev-parse --abbrev-ref HEAD)"
           echo "Detailed branch info:"
           git branch -vv
-
-
-
-    
   # # #     # - name: Parse Command
   # # #     #   id: parse-command
   # # #     #   run: |
