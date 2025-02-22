@@ -35,6 +35,8 @@ jobs:
             BASE_REF="origin/main"
             HEAD_REF="origin/${{ github.event.pull_request.head.ref }}"
           fi
+          echo $BASE_REF
+          echo $HEAD_REF
 
           git fetch origin main --depth=1
 
