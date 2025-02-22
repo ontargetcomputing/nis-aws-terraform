@@ -2,7 +2,7 @@ provider "aws" {
     region = "us-west-2"
 }
 resource "aws_s3_bucket" "vulnerable_bucket" {  
-    bucket = "rb-test-13123"  
+    bucket = "rb-test-131233"  
     acl    = "public-read" 
     
     versioning {    
