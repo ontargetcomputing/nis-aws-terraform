@@ -41,7 +41,7 @@ jobs:
           echo "Process Comment Trigger: ${{ needs.process-comment.outputs.trigger }}"
 
       - name: Get PR Branch Information
-        id: pr-info
+        id: pr_info
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -57,7 +57,7 @@ jobs:
       - name: Checkout PR Branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ steps.pr-info.outputs.head_ref }}
+          ref: ${{ steps.pr_info.outputs.head_ref }}
           fetch-depth: 0
 
       - name: Get branch information
@@ -68,7 +68,7 @@ jobs:
           git branch -vv
 
       - name: Parse Command
-        id: parse-command
+        id: parse_command
         run: |
           COMMENT="${{ github.event.comment.body }}"
           
@@ -117,7 +117,9 @@ jobs:
               comment: your comment here`
             });
 
-      - name: Valid Format
+      - name: Processing
         if: success()
         run: |
-          echo "HELLO THERE"
+          echo "Version Bump: ${{ steps.parse_command.outputs.version_bump }}"
+          echo "Comment Text: ${{ steps.parse_command.outputs.comment_text }}"
+          echo "Workspace: ${{ needs.identify_modified_workspace.outputs.workspace_path }}"
