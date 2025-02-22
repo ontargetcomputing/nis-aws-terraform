@@ -23,16 +23,6 @@ jobs:
         run: |
           rm changed_files.txt
 
-      - name: Report event type
-        run: |
-          echo "${{ github.event_name }}"
-
-      - name: Dump GitHub Context
-        env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-        run: |
-          echo "$GITHUB_CONTEXT"
-
       - name: Get changed files (Only in accounts/)
         id: changed-files
         env:
