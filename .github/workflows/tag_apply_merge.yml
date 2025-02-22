@@ -8,76 +8,89 @@ jobs:
   process-comment:
     runs-on: ubuntu-latest
     if: github.event.issue.pull_request 
+    outputs:
+      trigger: ${{ steps.check.outputs.trigger }}
     steps:
       - name: "Check for 'action: apply' comment"
+        id: check
         env:
           COMMENT_BODY: ${{ github.event.comment.body }}
-        id: check-comment
         run: |
           if [[ "$COMMENT_BODY" == *"action: apply"* ]]; then
             echo "Matched comment with 'action: apply'"
-            echo "trigger=true" >> $GITHUB_OUTPUT
+            echo "::set-output name=trigger::true"
           else
-            echo "trigger=false" >> $GITHUB_OUTPUT
+            echo "::set-output name=trigger::false"
           fi
-      - name: Checkout code
-        if: steps.check-comment.outputs.trigger == 'true'
-        uses: actions/checkout@v4
 
-      - name: ECHO
-        if: steps.check-comment.outputs.trigger == 'true'
-        run: |
-          echo "HELLO"
+  identify_modified_workspace:
+    needs: process-comment
+    if: ${{ needs.process_comment.outputs.trigger == 'true' }}
+    uses: ./.github/workflows/identify_modified_workspace.yml
+
+  # apply_and_merge:
+  #   needs: identify_modified_workspace
+  #   if: ${{ needs.identify_modified_workspace.outputs.workspace_path != '' }}
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout code
+  #       if: steps.check-comment.outputs.trigger == 'true'
+  #       uses: actions/checkout@v4
+
+  #     - name: ECHO
+  #       if: steps.check-comment.outputs.trigger == 'true'
+  #       run: |
+  #         echo "HELLO"
 
 
 
     
-      # - name: Parse Command
-      #   id: parse-command
-      #   run: |
-      #     COMMENT="${{ github.event.comment.body }}"
+  #     # - name: Parse Command
+  #     #   id: parse-command
+  #     #   run: |
+  #     #     COMMENT="${{ github.event.comment.body }}"
           
-      #     # Check if comment starts with 'action: apply'
-      #     if [[ ! "$COMMENT" =~ ^action:\ apply ]]; then
-      #       echo "Comment must start with 'action: apply'"
-      #       exit 1
-      #     fi
+  #     #     # Check if comment starts with 'action: apply'
+  #     #     if [[ ! "$COMMENT" =~ ^action:\ apply ]]; then
+  #     #       echo "Comment must start with 'action: apply'"
+  #     #       exit 1
+  #     #     fi
           
-      #     # Extract version bump
-      #     VERSION_BUMP=$(echo "$COMMENT" | grep -oP 'semver: \K(major|minor|patch)' || echo '')
-      #     if [[ -z "$VERSION_BUMP" ]]; then
-      #       echo "Error: Invalid or missing semver specification."
-      #       echo "Comment must follow format:"
-      #       echo "action: apply"
-      #       echo "semver: [major|minor|patch]"
-      #       echo "comment: your comment here"
-      #       exit 1
-      #     fi
-      #     VERSION_BUMP=$(echo "$VERSION_BUMP" | tr '[:lower:]' '[:upper:]')
+  #     #     # Extract version bump
+  #     #     VERSION_BUMP=$(echo "$COMMENT" | grep -oP 'semver: \K(major|minor|patch)' || echo '')
+  #     #     if [[ -z "$VERSION_BUMP" ]]; then
+  #     #       echo "Error: Invalid or missing semver specification."
+  #     #       echo "Comment must follow format:"
+  #     #       echo "action: apply"
+  #     #       echo "semver: [major|minor|patch]"
+  #     #       echo "comment: your comment here"
+  #     #       exit 1
+  #     #     fi
+  #     #     VERSION_BUMP=$(echo "$VERSION_BUMP" | tr '[:lower:]' '[:upper:]')
           
-      #     # Extract comment
-      #     COMMENT_TEXT=$(echo "$COMMENT" | grep -oP 'comment: \K(.*)$' || echo '')
-      #     if [[ -z "$COMMENT_TEXT" ]]; then
-      #       echo "Error: Missing comment text"
-      #       echo "Please provide a comment describing the changes"
-      #       exit 1
-      #     fi
+  #     #     # Extract comment
+  #     #     COMMENT_TEXT=$(echo "$COMMENT" | grep -oP 'comment: \K(.*)$' || echo '')
+  #     #     if [[ -z "$COMMENT_TEXT" ]]; then
+  #     #       echo "Error: Missing comment text"
+  #     #       echo "Please provide a comment describing the changes"
+  #     #       exit 1
+  #     #     fi
           
-      #     echo "version_bump=$VERSION_BUMP" >> $GITHUB_OUTPUT
-      #     echo "comment_text=$COMMENT_TEXT" >> $GITHUB_OUTPUT
+  #     #     echo "version_bump=$VERSION_BUMP" >> $GITHUB_OUTPUT
+  #     #     echo "comment_text=$COMMENT_TEXT" >> $GITHUB_OUTPUT
 
-      # - name: Comment on Invalid Format
-      #   if: failure()
-      #   uses: actions/github-script@v7
-      #   with:
-      #     script: |
-      #       github.rest.issues.createComment({
-      #         owner: context.repo.owner,
-      #         repo: context.repo.repo,
-      #         issue_number: ${{ github.event.issue.number }},
-      #         body: `❌ Invalid comment format. Please use:
+  #     # - name: Comment on Invalid Format
+  #     #   if: failure()
+  #     #   uses: actions/github-script@v7
+  #     #   with:
+  #     #     script: |
+  #     #       github.rest.issues.createComment({
+  #     #         owner: context.repo.owner,
+  #     #         repo: context.repo.repo,
+  #     #         issue_number: ${{ github.event.issue.number }},
+  #     #         body: `❌ Invalid comment format. Please use:
               
-      #         action: apply
-      #         semver: [major|minor|patch]
-      #         comment: your comment here`
-      #       });
+  #     #         action: apply
+  #     #         semver: [major|minor|patch]
+  #     #         comment: your comment here`
+  #     #       });
