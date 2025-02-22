@@ -7,20 +7,31 @@ on:
 jobs:
   process-comment:
     runs-on: ubuntu-latest
-    if: github.event.issue.pull_request != null && contains(github.event.comment.body, 'action: apply')
+    if: github.event.issue.pull_request 
+    steps:
+      - name: "Check for 'action: apply' comment"
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        id: check-comment
+        run: |
+          if [[ "$COMMENT_BODY" == *"action: apply"* ]]; then
+            echo "Matched comment with 'action: apply'"
+            echo "trigger=true" >> $GITHUB_OUTPUT
+          else
+            echo "trigger=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Checkout code
+        if: steps.check-comment.outputs.trigger == 'true'
+        uses: actions/checkout@v4
+
+      - name: ECHO
+        if: steps.check-comment.outputs.trigger == 'true'
+        run: |
+          echo "HELLO"
+
+
 
     
-    # outputs:
-    #   workspace: ${{ steps.get-workspace.outputs.workspace }}
-    #   version_bump: ${{ steps.parse-command.outputs.version_bump }}
-    #   comment_text: ${{ steps.parse-command.outputs.comment_text }}
-    #   branch_name: ${{ steps.get-pr.outputs.branch_name }}
-    steps:
-      - name: Echo
-
-        run: |
-          echo HELLo
-
       # - name: Parse Command
       #   id: parse-command
       #   run: |
