@@ -26,6 +26,11 @@ jobs:
       - name: Get changed files (Only in accounts/)
         id: changed-files
         run: |
+          echo "${{ github.event_name }}
+          
+      - name: Get changed files (Only in accounts/)
+        id: changed-files
+        run: |
           # Determine base and head refs based on event type
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             BASE_REF="origin/main"
