@@ -2,15 +2,6 @@ name: Identify Modified Workspace
 
 on:
   workflow_call:
-    inputs:
-      base_ref:
-        description: 'Base reference branch'
-        type: string
-        default: ${{ github.base_ref }}
-      head_ref:
-        description: 'Head reference branch'
-        type: string
-        default: ${{ github.head_ref }}
     outputs:
       workspace_path:
         description: "The path to the modified workspace"
@@ -33,9 +24,12 @@ jobs:
 
       - name: Get changed files (Only in accounts/)
         id: changed-files
+        env:
+          BASE_REF: ${{ inputs.base_ref }}
+          HEAD_REF: ${{ inputs.head_ref }}
         run: |
-          git fetch origin ${{ github.event.pull_request.base.ref }} --depth=1
-          CHANGED_FILES=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }} HEAD | grep '^accounts/' | grep -v 'README.md' || true)
+          git fetch origin main --depth=1
+          CHANGED_FILES=$(git diff --name-only origin/main HEAD | grep '^accounts/' | grep -v 'README.md' || true)
 
           # If there are no relevant changes, exit early
           if [[ -z "$CHANGED_FILES" ]]; then

@@ -15,9 +15,6 @@ on:
 jobs:
   identify_modified_workspace:
     uses: ./.github/workflows/identify_modified_workspace.yml
-    with:
-      base_ref: ${{ github.base_ref }}
-      head_ref: ${{ github.head_ref }}
 
   # apply_and_merge:
   #   needs: 
