@@ -137,31 +137,41 @@ jobs:
           # Find the highest version tag
           HIGHEST_TAG=$(echo "$WORKSPACE_TAGS" | grep "^$WORKSPACE " | sed "s/^$WORKSPACE //" | sort -V | tail -n 1)
 
-          # If no tag exists, start at 0.0.1
           if [[ -z "$HIGHEST_TAG" ]]; then
-            HIGHEST_TAG="0.0.0"
-
-          # Bump version based on type
-          IFS='.' read -r major minor patch <<< "$HIGHEST_TAG"
-          
-          case "$VERSION_BUMP" in
-            major)
-              major=$((major + 1))
-              minor=0
-              patch=0
-              ;;
-            minor)
-              minor=$((minor + 1))
-              patch=0
-              ;;
-            patch)
-              patch=$((patch + 1))
-              ;;
-            *)
-              echo "Invalid bump type: $VERSION_BUMP"
-              exit 1
-              ;;
-          esac
+              case "$VERSION_BUMP_TYPE" in
+                  "major")
+                      NEW_VERSION="1.0.0"
+                      ;;
+                  "minor")
+                      NEW_VERSION="0.1.0"
+                      ;;
+                  "patch")
+                      NEW_VERSION="0.0.1"
+                      ;;
+              esac
+          else
+            # Bump version based on type
+            IFS='.' read -r major minor patch <<< "$HIGHEST_TAG"
+            
+            case "$VERSION_BUMP" in
+              major)
+                major=$((major + 1))
+                minor=0
+                patch=0
+                ;;
+              minor)
+                minor=$((minor + 1))
+                patch=0
+                ;;
+              patch)
+                patch=$((patch + 1))
+                ;;
+              *)
+                echo "Invalid bump type: $VERSION_BUMP"
+                exit 1
+                ;;
+            esac
+          fi
           
           NEW_VERSION="$major.$minor.$patch"
 
