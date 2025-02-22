@@ -18,6 +18,10 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Remove changed_files.txt
+        run: |
+          rm changed_files.txt
+
       - name: Get changed files (Only in accounts/)
         id: changed-files
         run: |
@@ -31,7 +35,7 @@ jobs:
           fi
           echo "$CHANGED_FILES" > changed_files.txt
           cat changed_files.txt
-          
+
       - name: Extract unique workspaces
         id: check-workspaces
         run: |
