@@ -24,10 +24,10 @@ jobs:
           rm changed_files.txt
 
       - name: Get changed files (Only in accounts/)
-        id: changed-files
+        id: changed-files2
         run: |
           echo "${{ github.event_name }}
-          
+
       - name: Get changed files (Only in accounts/)
         id: changed-files
         run: |
