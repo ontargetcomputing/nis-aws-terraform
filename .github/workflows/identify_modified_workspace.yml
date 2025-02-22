@@ -17,6 +17,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.ref || github.ref }}
 
       - name: Remove changed_files.txt
         run: |
@@ -25,8 +26,19 @@ jobs:
       - name: Get changed files (Only in accounts/)
         id: changed-files
         run: |
+          # Determine base and head refs based on event type
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BASE_REF="origin/main"
+            HEAD_REF="HEAD"
+          else
+            # For issue_comment, we need to fetch PR's base and head
+            BASE_REF="origin/main"
+            HEAD_REF="origin/${{ github.event.pull_request.head.ref }}"
+          fi
+
           git fetch origin main --depth=1
-          CHANGED_FILES=$(git diff --name-only origin/main HEAD | grep '^accounts/' | grep -v 'README.md' || true)
+
+          CHANGED_FILES=$(git diff --name-only $BASE_REF $HEAD_REF | grep '^accounts/' | grep -v 'README.md' || true)
 
           # If there are no relevant changes, exit early
           if [[ -z "$CHANGED_FILES" ]]; then
