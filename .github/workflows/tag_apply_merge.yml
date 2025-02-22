@@ -139,35 +139,34 @@ jobs:
 
           # If no tag exists, start at 0.0.1
           if [[ -z "$HIGHEST_TAG" ]]; then
-            NEW_VERSION="0.0.1"
-          else
-            # Bump version based on type
-            IFS='.' read -r major minor patch <<< "$HIGHEST_TAG"
-            
-            case "$VERSION_BUMP" in
-              major)
-                major=$((major + 1))
-                minor=0
-                patch=0
-                ;;
-              minor)
-                minor=$((minor + 1))
-                patch=0
-                ;;
-              patch)
-                patch=$((patch + 1))
-                ;;
-              *)
-                echo "Invalid bump type: $VERSION_BUMP"
-                exit 1
-                ;;
-            esac
-            
-            NEW_VERSION="$major.$minor.$patch"
-          fi
+            HIGHEST_TAG="0.0.0"
+
+          # Bump version based on type
+          IFS='.' read -r major minor patch <<< "$HIGHEST_TAG"
+          
+          case "$VERSION_BUMP" in
+            major)
+              major=$((major + 1))
+              minor=0
+              patch=0
+              ;;
+            minor)
+              minor=$((minor + 1))
+              patch=0
+              ;;
+            patch)
+              patch=$((patch + 1))
+              ;;
+            *)
+              echo "Invalid bump type: $VERSION_BUMP"
+              exit 1
+              ;;
+          esac
+          
+          NEW_VERSION="$major.$minor.$patch"
 
           # Create full new tag
-          NEW_TAG="$WORKSPACE $NEW_VERSION"
+          NEW_TAG="$WORKSPACE-$NEW_VERSION"
 
           echo "Highest existing tag: $HIGHEST_TAG"
           echo "New version: $NEW_VERSION"
@@ -181,3 +180,21 @@ jobs:
         run: |
           echo "New Version: ${{ steps.version_bump.outputs.version }}"
           echo "New Tag: ${{ steps.version_bump.outputs.tag }}"
+
+      # - name: Create Tag on PR Branch
+      #   run: |
+      #     git config user.name github-actions
+      #     git config user.email github-actions@github.com
+      #     git tag ${{ steps.version-bump.outputs.tag }}
+      #     git push origin ${{ steps.version-bump.outputs.tag }}
+
+      # - name: Merge PR
+      #   uses: actions/github-script@v7
+      #   with:
+      #     github-token: ${{secrets.GITHUB_TOKEN}}
+      #     script: |
+      #       github.rest.pulls.merge({
+      #         owner: context.repo.owner,
+      #         repo: context.repo.repo,
+      #         pull_number: context.issue.number
+      #       })
