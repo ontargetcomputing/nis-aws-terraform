@@ -1,7 +1,7 @@
 name: Apply and Release
 
 on:
-  issue_comment:
+  comment:
     types: [created]
 
 jobs:
