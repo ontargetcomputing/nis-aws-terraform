@@ -123,3 +123,61 @@ jobs:
           echo "Version Bump: ${{ steps.parse_command.outputs.version_bump }}"
           echo "Comment Text: ${{ steps.parse_command.outputs.comment_text }}"
           echo "Workspace: ${{ needs.identify_modified_workspace.outputs.workspace_path }}"
+
+      - name: Determine Version Bump
+        id: version-bump
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WORKSPACE: ${{ needs.identify_modified_workspace.outputs.workspace_path }}
+          VERSION_BUMP: ${{ steps.parse_command.outputs.version_bump }}
+        run: |
+          # Find all tags for the workspace
+          WORKSPACE_TAGS=$(git ls-remote --tags origin | grep "$WORKSPACE" | awk '{print $2}' | sed 's/refs\/tags\///')
+          
+          # Find the highest version tag
+          HIGHEST_TAG=$(echo "$WORKSPACE_TAGS" | grep "^$WORKSPACE " | sed "s/^$WORKSPACE //" | sort -V | tail -n 1)
+
+          # If no tag exists, start at 0.0.1
+          if [[ -z "$HIGHEST_TAG" ]]; then
+            NEW_VERSION="0.0.1"
+          else
+            # Bump version based on type
+            IFS='.' read -r major minor patch <<< "$HIGHEST_TAG"
+            
+            case "$VERSION_BUMP" in
+              major)
+                major=$((major + 1))
+                minor=0
+                patch=0
+                ;;
+              minor)
+                minor=$((minor + 1))
+                patch=0
+                ;;
+              patch)
+                patch=$((patch + 1))
+                ;;
+              *)
+                echo "Invalid bump type: $VERSION_BUMP"
+                exit 1
+                ;;
+            esac
+            
+            NEW_VERSION="$major.$minor.$patch"
+          fi
+
+          # Create full new tag
+          NEW_TAG="$WORKSPACE $NEW_VERSION"
+
+          echo "Highest existing tag: $HIGHEST_TAG"
+          echo "New version: $NEW_VERSION"
+          echo "New tag: $NEW_TAG"
+
+          # Set outputs for use in subsequent steps
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$NEW_TAG" >> $GITHUB_OUTPUT
+
+      - name: Use Version Bump
+        run: |
+          echo "New Version: ${{ steps.version-bump.outputs.version }}"
+          echo "New Tag: ${{ steps.version-bump.outputs.tag }}"
