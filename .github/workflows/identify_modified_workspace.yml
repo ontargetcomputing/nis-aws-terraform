@@ -24,9 +24,6 @@ jobs:
 
       - name: Get changed files (Only in accounts/)
         id: changed-files
-        env:
-          BASE_REF: ${{ inputs.base_ref }}
-          HEAD_REF: ${{ inputs.head_ref }}
         run: |
           git fetch origin main --depth=1
           CHANGED_FILES=$(git diff --name-only origin/main HEAD | grep '^accounts/' | grep -v 'README.md' || true)
