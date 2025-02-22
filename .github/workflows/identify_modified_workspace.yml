@@ -2,6 +2,15 @@ name: Identify Modified Workspace
 
 on:
   workflow_call:
+    inputs:
+      base_ref:
+        description: 'Base reference branch'
+        type: string
+        default: ${{ github.base_ref }}
+      head_ref:
+        description: 'Head reference branch'
+        type: string
+        default: ${{ github.head_ref }}
     outputs:
       workspace_path:
         description: "The path to the modified workspace"
