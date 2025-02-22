@@ -29,44 +29,26 @@ jobs:
     uses: ./.github/workflows/identify_modified_workspace.yml
 
 
-  debug_job:
+  apply_and_merge:
     needs: 
       - process-comment
       - identify_modified_workspace
+    if: ${{ needs.identify_modified_workspace.outputs.workspace_path != '' && needs.process-comment.outputs.trigger == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Debug Output
         run: |
-          echo "Process Comment Trigger: ${{ needs.process_comment.outputs.trigger }}"
-          echo "Identify Modified Workspace Triggered"
+          echo "Process Comment Trigger: ${{ needs.process-comment.outputs.trigger }}"
 
-  # identify_modified_workspace:
-  #   uses: ./.github/workflows/identify_modified_workspace.yml
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-  # apply_and_merge:
-  #   needs: identify_modified_workspace
-  #   if: ${{ needs.identify_modified_workspace.outputs.workspace_path != '' }}
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: ECHO
-  #       if: steps.check-comment.outputs.trigger == 'true'
-  #       run: |
-  #         echo "HELLO"
-  # # apply_and_merge:
-  # #   needs: 
-  # #     - identify_modified_workspace
-  # #     - process-comment
-  # #   if: ${{ needs.identify_modified_workspace.outputs.workspace_path != '' && needs.process_comment.outputs.trigger == 'true' }}
-  # #   runs-on: ubuntu-latest
-  # #   steps:
-  # #     - name: Checkout code
-  # #       if: steps.check-comment.outputs.trigger == 'true'
-  # #       uses: actions/checkout@v4
-
-  # #     - name: ECHO
-  # #       if: steps.check-comment.outputs.trigger == 'true'
-  # #       run: |
-  # #         echo "HELLO"
+      - name: Get branch information
+        run: |
+          echo "Current branch: $(git branch --show-current)"
+          echo "Full ref: $(git rev-parse --abbrev-ref HEAD)"
+          echo "Detailed branch info:"
+          git branch -vv
 
 
 
