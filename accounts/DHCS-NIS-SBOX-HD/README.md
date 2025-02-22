@@ -1,4 +1,4 @@
-# Terraform Workspace Template
+# Terraform Workspace Template RDB
 
 ## 📌 Overview
 This `.templates` directory contains standard Terraform files to help you quickly set up a new Terraform workspace. Instead of writing Terraform files from scratch, you can copy these templates into a new workspace directory and customize them as needed.
