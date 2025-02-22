@@ -6,8 +6,9 @@ on:
 
 jobs:
   process-comment:
-    if: github.event.issue.pull_request && contains(github.event.comment.body, 'action: apply')
     runs-on: ubuntu-latest
+    if: github.event.issue.pull_request && contains(github.event.comment.body, 'action: apply')
+    
     # outputs:
     #   workspace: ${{ steps.get-workspace.outputs.workspace }}
     #   version_bump: ${{ steps.parse-command.outputs.version_bump }}
