@@ -1,6 +1,6 @@
 resource "aws_ssm_parameter" "example" {
   name        = "/myapp/database/password"
-  description = "Database password for Mddddddddddddddppaaaa"
+  description = "Database password for Mdddddddddddddddppaaaa"
   type        = "SecureString"
   value       = "MySuperSecretPassword"
 
