@@ -155,6 +155,9 @@ jobs:
     needs: identify_modified_workspace
     if: ${{ needs.identify_modified_workspace.outputs.workspace_path != '' }}
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ needs.identify_modified_workspace.outputs.workspace_path }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -173,36 +176,4 @@ jobs:
       - name: Create Terraform Plan
         id: plan
         run: |
-          # Start the plan and output speculative plan ID
-          output=$(terraform plan -input=false -no-color -detailed-exitcode 2>&1)
-          exitcode=$?
-          echo "$output" > plan_output.txt
-          
-          # Check exit code - 0 = no changes, 1 = error, 2 = changes present
-          if [ $exitcode -eq 1 ]; then
-            echo "Terraform plan failed"
-            exit 1
-          fi
-          
-          echo "plan_output<<EOF" >> $GITHUB_OUTPUT
-          cat plan_output.txt >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          echo "exitcode=$exitcode" >> $GITHUB_OUTPUT
-
-      - name: Process Plan Output
-        id: process
-        run: |
-          # Extract the run URL from the output if running in Terraform Cloud
-          run_url=$(grep -o 'https://app.terraform.io/app/[^[:space:]]*' plan_output.txt | head -1 || echo "")
-          
-          if [ -n "$run_url" ]; then
-            echo "tf_run_url=$run_url" >> $GITHUB_OUTPUT
-            echo "Found Terraform Cloud run URL: $run_url"
-          else
-            echo "No Terraform Cloud run URL found, likely running in local mode."
-          fi
-
-
-      - name: Fail if Plan Has Errors
-        if: steps.plan.outputs.exitcode == 1
-        run: exit 1
+          terraform plan
