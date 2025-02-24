@@ -5,6 +5,6 @@ resource "aws_ssm_parameter" "example" {
   value       = "MySuperSecretPassword"
 
   tags = {
-    Environment = "Sandbox"
+    Environment = "Sandbox1"
   }
 }
