@@ -1,9 +1,9 @@
 terraform {
   backend "remote" {
     hostname     = "app.terraform.io"
-    organization = "DHCS"
+    organization = "balutbomber"
     workspaces {
-      name = "dddd"
+      name = "dhcs-nis-dev-hd-test-workspace"
     }
   }
   required_providers {

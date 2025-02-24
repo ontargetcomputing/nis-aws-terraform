@@ -65,9 +65,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.9.8
+          terraform_version: latest
 
       - name: Get Workspace Path
         run: echo "WORKSPACE_PATH=${{ needs.validate-workspace-changes.outputs.workspace_path }}" >> $GITHUB_ENV
@@ -206,4 +206,3 @@ jobs:
       - name: Fail if Plan Has Errors
         if: steps.plan.outputs.exitcode == 1
         run: exit 1
-
