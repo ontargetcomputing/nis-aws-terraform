@@ -189,31 +189,85 @@ jobs:
           echo "New Version: ${{ steps.version_bump.outputs.version }}"
           echo "New Tag: ${{ steps.version_bump.outputs.tag }}"
 
-      - name: Create Tag on PR Branch
-        run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-          git tag ${{ steps.version_bump.outputs.tag }}
-          git push origin ${{ steps.version_bump.outputs.tag }}
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: latest
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
 
-      - name: Merge PR with Squash
+      - name: Terraform Init
+        id: init
+        run: terraform -chdir=${{ needs.identify_modified_workspace.outputs.workspace_path }} init
+
+      - name: Terraform Apply
+        id: apply
+        env:
+              TF_VAR_version: ${{ steps.version_bump.outputs.version }}        
+        run: |
+          if terraform -chdir =${{ needs.identify_modified_workspace.outputs.workspace_path }} apply; then
+            echo "apply_success=true" >> $GITHUB_OUTPUT
+          else
+            echo "apply_success=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: Merge PR, Tag, and Delete Branch
+        if: steps.apply.outputs.apply_success == 'true'
         uses: actions/github-script@v7
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
-            const { data: pullRequest } = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.issue.number
-            });
+            try {
+              const { data: pullRequest } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number
+              });
 
-            // Create a commit message that includes the PR title and body
-            const commitMessage = `${pullRequest.title}\n\n${pullRequest.body || ''}\n\nComment: ${{ steps.parse_command.outputs.comment_text }}\n\nCloses #${context.issue.number}`;
+              const branchName = pullRequest.head.ref;
+              const commitMessage = `${pullRequest.title}\n\n${pullRequest.body || ''}\n\nComment: ${{ steps.parse_command.outputs.comment_text }}\n\nCloses #${context.issue.number}`;
 
-            await github.rest.pulls.merge({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.issue.number,
-              merge_method: 'squash',
-              commit_title: commitMessage
-            });
+              // 1. Merge the PR first
+              const mergeResult = await github.rest.pulls.merge({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+                merge_method: 'squash',
+                commit_title: commitMessage
+              });
+
+              // 2. Delete the branch immediately after merge
+              await github.rest.git.deleteRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: `heads/${branchName}`
+              });
+
+              // 3. Create tag on the merge commit
+              await exec.exec('git', ['fetch', 'origin', 'main']);
+              await exec.exec('git', ['config', 'user.name', 'github-actions']);
+              await exec.exec('git', ['config', 'user.email', 'github-actions@github.com']);
+              await exec.exec('git', ['tag', '${{ steps.version_bump.outputs.tag }}', mergeResult.data.sha]);
+              await exec.exec('git', ['push', 'origin', '${{ steps.version_bump.outputs.tag }}']);
+
+              // Add success comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: `✅ Successfully completed:
+                - Terraform apply successful
+                - PR merged to main
+                - Branch \`${branchName}\` deleted
+                - Created tag ${steps.version_bump.outputs.tag} on merge commit`
+              });
+
+            } catch (error) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: `❌ Error during merge/cleanup process: ${error.message}`
+              });
+              throw error;
+            }
