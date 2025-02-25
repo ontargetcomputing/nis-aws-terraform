@@ -172,7 +172,7 @@ jobs:
       - name: Create tfvars file
         run: |
           cd ${{ needs.identify_modified_workspace.outputs.workspace_path }}
-          echo "semver = \"${{ steps.version_bump.outputs.version }}\"" >> terraform.tfvars
+          echo "semver = \"pr_check_plan_noversion\"" >> terraform.tfvars
           echo "Content of terraform.tfvars:"
           cat terraform.tfvars
 
