@@ -155,6 +155,8 @@ jobs:
     needs: identify_modified_workspace
     if: ${{ needs.identify_modified_workspace.outputs.workspace_path != '' }}
     runs-on: ubuntu-latest
+    env:
+          TF_VAR_semver: pr_check_plan_version
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
