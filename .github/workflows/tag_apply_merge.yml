@@ -286,8 +286,8 @@ jobs:
           HIGHEST_TAG=$(echo "$WORKSPACE_TAGS" | grep "^${CLEAN_WORKSPACE}-" | awk -F "${CLEAN_WORKSPACE}-" '{print $2}' | sort -V | tail -n 1)
 
 
-          # If no tag exists, start at 0.0.1
           if [[ -z "$HIGHEST_TAG" ]]; then
+              echo "No existing tag"
               case "$VERSION_BUMP" in
                   "MAJOR")
                       NEW_VERSION="1.0.0"
@@ -300,13 +300,14 @@ jobs:
                       ;;
               esac
           else
+              echo "Existing Tag: $HIGHEST_TAG"
               # Split version into components
               MAJOR=$(echo "$HIGHEST_TAG" | cut -d. -f1)
               MINOR=$(echo "$HIGHEST_TAG" | cut -d. -f2)
               PATCH=$(echo "$HIGHEST_TAG" | cut -d. -f3)
 
               # Bump version according to type
-              case "$VERSION_BUMP_TYPE" in
+              case "$VERSION_BUMP" in
                   "MAJOR")
                       MAJOR=$((MAJOR + 1))
                       MINOR=0
@@ -357,18 +358,19 @@ jobs:
           echo "Content of terraform.tfvars:"
           cat terraform.tfvars
 
-      - name: Terraform Apply
-        id: apply
-        run: |
-          if terraform -chdir=${{ needs.identify_modified_workspace.outputs.workspace_path }} apply; then
-            echo "apply_success=true" >> $GITHUB_OUTPUT
-          else
-            echo "apply_success=false" >> $GITHUB_OUTPUT
-            exit 1
-          fi
+      # RDB
+      # - name: Terraform Apply
+      #   id: apply
+      #   run: |
+      #     if terraform -chdir=${{ needs.identify_modified_workspace.outputs.workspace_path }} apply; then
+      #       echo "apply_success=true" >> $GITHUB_OUTPUT
+      #     else
+      #       echo "apply_success=false" >> $GITHUB_OUTPUT
+      #       exit 1
+      #     fi
 
       - name: Merge PR, Tag, and Delete Branch
-        if: steps.apply.outputs.apply_success == 'true'
+        #  steps.apply.outputs.apply_success == 'true'
         uses: actions/github-script@v7
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
