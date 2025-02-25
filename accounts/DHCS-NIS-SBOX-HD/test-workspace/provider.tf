@@ -7,8 +7,8 @@ provider "aws" {
 
   default_tags {
     tags = {
-      "DHCS:Environment" = var.environment
       "DHCS:IacContext"  = terraform.workspace
+      "DHCS:version"     = var.semver
     }
   }
 }

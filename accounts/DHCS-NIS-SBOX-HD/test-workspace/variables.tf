@@ -6,9 +6,9 @@ variable "aws_region" {
   default     = "us-west-2"
 }
 
-variable "environment" {
-  description = "The deployment environment (e.g., dev, staging, prod)"
+variable "semver" {
+  description = "The version of the infrastructure deployed ( see github tags )"
   type        = string
-  default     = "dev"
 }
+
 
