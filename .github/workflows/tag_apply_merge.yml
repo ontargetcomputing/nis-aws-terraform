@@ -276,8 +276,9 @@ jobs:
           WORKSPACE: ${{ needs.identify_modified_workspace.outputs.workspace_path }}
           VERSION_BUMP: ${{ steps.parse_command.outputs.version_bump }}
         run: |
-          WORKSPACE_TAGS=$(git ls-remote --tags origin | grep "${WORKSPACE}" | awk '{print $2}' | sed 's|refs/tags/||')
-          HIGHEST_TAG=$(echo "$WORKSPACE_TAGS" | grep "^${WORKSPACE}-" | awk -F "${WORKSPACE}-" '{print $2}' | sort -V | tail -n 1)
+          CLEAN_WORKSPACE=$(echo "$WORKSPACE" | sed 's/^accounts\///')
+          WORKSPACE_TAGS=$(git ls-remote --tags origin | grep "${CLEAN_WORKSPACE}" | awk '{print $2}' | sed 's|refs/tags/||')
+          HIGHEST_TAG=$(echo "$WORKSPACE_TAGS" | grep "^${CLEAN_WORKSPACE}-" | awk -F "${CLEAN_WORKSPACE}-" '{print $2}' | sort -V | tail -n 1)
 
 
           # If no tag exists, start at 0.0.1
@@ -319,7 +320,7 @@ jobs:
           fi
 
           # Create full new tag
-          NEW_TAG="$WORKSPACE-$NEW_VERSION"
+          NEW_TAG="${CLEAN_WORKSPACE}-${NEW_VERSION}"
 
           echo "Highest existing tag: $HIGHEST_TAG"
           echo "New version: $NEW_VERSION"
@@ -347,7 +348,7 @@ jobs:
       - name: Create tfvars file
         run: |
           cd ${{ needs.identify_modified_workspace.outputs.workspace_path }}
-          echo "semver = \"${{ steps.version_bump.outputs.version }}\"" >> terraform.tfvars
+          echo "semver = \"${{ steps.version_bump.outputs.tag }}\"" >> terraform.tfvars
           echo "Content of terraform.tfvars:"
           cat terraform.tfvars
 
