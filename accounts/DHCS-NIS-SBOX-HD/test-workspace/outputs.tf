@@ -5,7 +5,3 @@ output "aws_region" {
   value       = var.aws_region
 }
 
-output "environment" {
-  description = "The deployment environment"
-  value       = var.environment
-}
