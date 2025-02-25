@@ -372,6 +372,8 @@ jobs:
       - name: Merge PR, Tag, and Delete Branch
         #  steps.apply.outputs.apply_success == 'true'
         uses: actions/github-script@v7
+        env:
+          TAG: ${{ steps.version_bump.outputs.tag  }}
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
@@ -405,8 +407,8 @@ jobs:
               await exec.exec('git', ['fetch', 'origin', 'main']);
               await exec.exec('git', ['config', 'user.name', 'github-actions']);
               await exec.exec('git', ['config', 'user.email', 'github-actions@github.com']);
-              await exec.exec('git', ['tag', '${{ steps.version_bump.outputs.tag }}', mergeResult.data.sha]);
-              await exec.exec('git', ['push', 'origin', '${{ steps.version_bump.outputs.tag }}']);
+              await exec.exec('git', ['tag', '$TAG', mergeResult.data.sha]);
+              await exec.exec('git', ['push', 'origin', '$TAG']);
 
               // Add success comment
               await github.rest.issues.createComment({
