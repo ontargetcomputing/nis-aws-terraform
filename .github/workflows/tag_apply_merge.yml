@@ -30,6 +30,7 @@ jobs:
     outputs:
       approved: ${{ steps.check-reviews.outputs.approved }}
       checks_passed: ${{ steps.check-status.outputs.passed }}
+      mergeable: ${{ steps.check-mergeable.outputs.mergeable }}
     steps:
       - name: Check PR Reviews
         id: check-reviews
@@ -104,13 +105,67 @@ jobs:
               });
             }
 
+      - name: Check Branch Status
+        id: check-mergeable
+        if: steps.check-reviews.outputs.approved == 'true' && steps.check-status.outputs.passed == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            
+            let mergeable = false;
+            let message = '';
+            
+            // Check if branch is out of date
+            if (pr.mergeable === false) {
+              message = '❌ Cannot proceed: Branch is out of date with base branch. Please merge or rebase with the base branch.';
+            } else if (pr.mergeable === null) {
+              // GitHub is still calculating mergeability, we need to wait and retry
+              let attempts = 0;
+              while (attempts < 5) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                const { data: updatedPr } = await github.rest.pulls.get({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: context.issue.number
+                });
+                if (updatedPr.mergeable !== null) {
+                  mergeable = updatedPr.mergeable;
+                  break;
+                }
+                attempts++;
+              }
+              if (!mergeable) {
+                message = '❌ Cannot proceed: Unable to determine if branch is up to date. Please try again in a few moments.';
+              }
+            } else {
+              mergeable = true;
+            }
+            
+            core.setOutput('mergeable', mergeable.toString());
+            
+            if (!mergeable) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: message
+              });
+            }
+
+
 
   identify_modified_workspace:
     needs: [process-comment, check-pr-status]
     if: |
       needs.process-comment.outputs.trigger == 'true' && 
       needs.check-pr-status.outputs.approved == 'true' && 
-      needs.check-pr-status.outputs.checks_passed == 'true'
+      needs.check-pr-status.outputs.checks_passed == 'true' &&
+      needs.check-pr-status.outputs.mergeable == 'true'
     uses: ./.github/workflows/identify_modified_workspace.yml
 
 
@@ -123,7 +178,8 @@ jobs:
       needs.identify_modified_workspace.outputs.workspace_path != '' && 
       needs.process-comment.outputs.trigger == 'true' && 
       needs.check-pr-status.outputs.approved == 'true' && 
-      needs.check-pr-status.outputs.checks_passed == 'true'    
+      needs.check-pr-status.outputs.checks_passed == 'true' &&
+      needs.check-pr-status.outputs.mergeable == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Debug Output
