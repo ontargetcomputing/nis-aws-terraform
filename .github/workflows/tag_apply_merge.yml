@@ -407,8 +407,8 @@ jobs:
               await exec.exec('git', ['fetch', 'origin', 'main']);
               await exec.exec('git', ['config', 'user.name', 'github-actions']);
               await exec.exec('git', ['config', 'user.email', 'github-actions@github.com']);
-              await exec.exec('git', ['tag', '$TAG', mergeResult.data.sha]);
-              await exec.exec('git', ['push', 'origin', '$TAG']);
+              await exec.exec('git', ['tag', '${{ steps.version_bump.outputs.tag }}', mergeResult.data.sha]);
+              await exec.exec('git', ['push', 'origin', '${{ steps.version_bump.outputs.tag }}']);
 
               // Add success comment
               await github.rest.issues.createComment({
@@ -419,7 +419,7 @@ jobs:
                 - Terraform apply successful
                 - PR merged to main
                 - Branch \`${branchName}\` deleted
-                - Created tag ${steps.version_bump.outputs.tag} on merge commit`
+                - Created tag ${{ steps.version_bump.outputs.tag }} on merge commit`
               });
 
             } catch (error) {
